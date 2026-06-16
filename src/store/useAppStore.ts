@@ -75,12 +75,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // Configurar Realtime Subscriptions
       pb.collection('orcamentos').subscribe('*', function (e) {
-        console.log('Realtime orcamentos atualizado', e.action, e.record);
         get().fetchBudgets();
       });
 
       pb.collection('users').subscribe('*', function (e) {
-        console.log('Realtime users atualizado', e.action, e.record);
         get().fetchUsers();
       });
 
