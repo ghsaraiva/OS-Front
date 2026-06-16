@@ -23,10 +23,12 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { pb } from "../../lib/pocketbase";
 import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
 
 export default function BudgetDetails() {
+  const { isAdmin } = useAuth();
   const { id } = useParams<{ id: string }>();
   const { budgets, isLoading, updateBudgetInStore } = useAppStore();
   const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
@@ -102,16 +104,16 @@ export default function BudgetDetails() {
         ((lucroLiquidoPrevisto / newPrice) * 100).toFixed(2),
       );
 
-      const updatedRecord = await pb
-        .collection("orcamentos")
-        .update(orcamento.id, {
-          preco_final_venda: newPrice,
-          seguro,
-          imposto,
-          custo_projeto: custoProjeto,
-          lucro_liquido_previsto: lucroLiquidoPrevisto,
-          lucro_liquido_perc: lucroLiquidoPerc,
-        });
+      const response = await api.patch<Orcamento>(`/budgets/${orcamento.id}`, {
+        preco_final_venda: newPrice,
+        seguro,
+        imposto,
+        custo_projeto: custoProjeto,
+        lucro_liquido_previsto: lucroLiquidoPrevisto,
+        lucro_liquido_perc: lucroLiquidoPerc,
+      });
+
+      const updatedRecord = response.data;
 
       // Sync local state and store
       setOrcamento(updatedRecord as any);
@@ -124,7 +126,6 @@ export default function BudgetDetails() {
       );
       setIsEditingPrice(false);
     } catch (err) {
-      console.error("Erro ao atualizar preço:", err);
       addToast(
         "error",
         "Erro ao Salvar",
@@ -222,13 +223,15 @@ export default function BudgetDetails() {
             Voltar para Listagem
           </Link>
           <div className="flex gap-3">
-            <Link
-              to="/budgets/management"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/[0.05] dark:bg-white/[0.02] dark:text-white/90 dark:hover:bg-white/[0.05]"
-            >
-              <TrendingUp className="size-4" />
-              Editar / Refinar Gerencial
-            </Link>
+            {isAdmin && orcamento && (
+              <Link
+                to={`/budgets/management?id=${orcamento.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/[0.05] dark:bg-white/[0.02] dark:text-white/90 dark:hover:bg-white/[0.05]"
+              >
+                <TrendingUp className="size-4" />
+                Refinar Gerencial
+              </Link>
+            )}
             <button
               onClick={() => window.print()}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 shadow-theme-xs transition-colors"

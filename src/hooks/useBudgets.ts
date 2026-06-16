@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { pb } from "../lib/pocketbase";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 import axios from "axios";
-
-const apiBaseUrl = import.meta.env.VITE_API_URL;
 
 export interface Orcamento {
   id: string;
@@ -103,19 +101,8 @@ export const useBudgets = () => {
   const fetchOrcamentos = useCallback(async () => {
     try {
       setLoading(true);
-
-      let filter = "";
-      if (!isAdmin && user?.id) {
-        filter = `user_id = "${user.id}"`;
-      }
-
-      const records = await pb.collection("orcamentos").getFullList<Orcamento>({
-        sort: "-created",
-        filter: filter,
-        expand: "user_id",
-      });
-
-      setOrcamentos(records);
+      const response = await api.get<Orcamento[]>("/budgets");
+      setOrcamentos(response.data);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -125,7 +112,7 @@ export const useBudgets = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, isAdmin]);
+  }, []);
 
   const createInitialBudget = async (
     formData: Record<string, unknown>,
@@ -141,8 +128,8 @@ export const useBudgets = () => {
         user_id: user.id,
       };
 
-      const response = await axios.post(
-        `${apiBaseUrl}/criar-solicitacao`,
+      const response = await api.post<Orcamento>(
+        "/criar-solicitacao",
         payload,
       );
 
@@ -171,11 +158,15 @@ export const useBudgets = () => {
   > => {
     try {
       setLoading(true);
-      const record = await pb.collection("orcamentos").getOne<Orcamento>(id, {
-        expand: "user_id",
-      });
-      return { success: true, data: record };
+      const response = await api.get<Orcamento>(`/budgets/${id}`);
+      return { success: true, data: response.data };
     } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        return {
+          success: false,
+          error: err.response?.data?.error || err.message,
+        };
+      }
       return {
         success: false,
         error: err instanceof Error ? err.message : "Erro ao buscar orçamento",

@@ -262,3 +262,33 @@ layer(base);
 .animate-slideDown {
   animation: slideDown 0.3s ease-out forwards;
 }
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-200) 25%,
+    var(--color-gray-100) 37%,
+    var(--color-gray-200) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+:is(.dark *) .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.1) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 200% 100%;
+}

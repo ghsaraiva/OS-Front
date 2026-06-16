@@ -28,7 +28,6 @@ export default function Metrics() {
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Erro ao buscar KPIs do dashboard:", err);
         if (active) {
           setIsLoading(false);
         }

@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-
-// Assume these icons are imported from an icon library
-import {
-  ChevronDownIcon,
-  GridIcon,
-  LockIcon,
-  DocsIcon,
-} from "../icons";
+import { ChevronDownIcon, GridIcon, LockIcon, DocsIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -32,12 +25,6 @@ const navItems: NavItem[] = [
     subItems: [{ name: "Geral", path: "/", pro: false }],
   },
   {
-    name: "Segurança",
-    icon: <LockIcon />,
-    roles: ["admin"],
-    subItems: [{ name: "Novo Usuário", path: "/security/users" }],
-  },
-  {
     name: "Orçamentos",
     icon: <DocsIcon />,
     subItems: [
@@ -54,11 +41,12 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  // {
-  //   icon: <CalenderIcon />,
-  //   name: "Calendar",
-  //   path: "/calendar",
-  // },
+  {
+    name: "Segurança",
+    icon: <LockIcon />,
+    roles: ["admin"],
+    subItems: [{ name: "Novo Usuário", path: "/security/users" }],
+  },
 ];
 
 const AppSidebar: React.FC = () => {

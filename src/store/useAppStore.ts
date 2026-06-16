@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { pb } from '../lib/pocketbase';
 import { Orcamento } from '../hooks/useBudgets';
+import api from '../services/api';
 
 export interface User {
   id: string;
@@ -63,27 +64,27 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const [users, budgets] = await Promise.all([
-        pb.collection('users').getFullList<User>(),
-        pb.collection('orcamentos').getFullList<Orcamento>({
-          sort: '-created',
-          expand: 'user_id',
-        }),
-      ]);
+      const isAdmin = pb.authStore.model?.tipo_acesso === 'admin';
+
+      const budgetsPromise = api.get<Orcamento[]>('/budgets').then(res => res.data);
+      const usersPromise = isAdmin 
+        ? api.get<User[]>('/users').then(res => res.data)
+        : Promise.resolve([] as User[]);
+
+      const [users, budgets] = await Promise.all([usersPromise, budgetsPromise]);
 
       set({ users, budgets, cities: [], isLoading: false, isSubscribed: true });
 
       // Configurar Realtime Subscriptions
-      pb.collection('orcamentos').subscribe('*', function (e) {
+      pb.collection('orcamentos').subscribe('*', function () {
         get().fetchBudgets();
       });
 
-      pb.collection('users').subscribe('*', function (e) {
+      pb.collection('users').subscribe('*', function () {
         get().fetchUsers();
       });
 
     } catch (err: unknown) {
-      console.error('Error initializing app:', err);
       set({ error: err instanceof Error ? err.message : 'Erro desconhecido', isLoading: false });
     }
   },
@@ -100,22 +101,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   fetchBudgets: async () => {
     try {
-      const budgets = await pb.collection('orcamentos').getFullList<Orcamento>({
-        sort: '-created',
-        expand: 'user_id',
-      });
-      set({ budgets });
-    } catch (err: unknown) {
-      console.error('Error fetching budgets:', err);
+      const response = await api.get<Orcamento[]>('/budgets');
+      set({ budgets: response.data });
+    } catch {
+      // Fetch fail silenced
     }
   },
 
   fetchUsers: async () => {
+    const isAdmin = pb.authStore.model?.tipo_acesso === 'admin';
+    if (!isAdmin) return;
+
     try {
-      const users = await pb.collection('users').getFullList<User>();
-      set({ users });
-    } catch (err: unknown) {
-      console.error('Error fetching users:', err);
+      const response = await api.get<User[]>('/users');
+      set({ users: response.data });
+    } catch {
+      // Fetch fail silenced
     }
   },
 }));

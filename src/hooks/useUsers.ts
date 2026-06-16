@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { pb, UserRecord } from '../lib/pocketbase';
+import { UserRecord } from '../lib/pocketbase';
+import api from '../services/api';
+import axios from 'axios';
 
 export const useUsers = () => {
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -9,13 +11,14 @@ export const useUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      // PocketBase List Users
-      const records = await pb.collection('users').getFullList<UserRecord>({
-        sort: '-created',
-      });
-      setUsers(records);
+      const response = await api.get<UserRecord[]>('/users');
+      setUsers(response.data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Erro desconhecido");
+      }
     } finally {
       setLoading(false);
     }
@@ -40,12 +43,17 @@ export const useUsers = () => {
         emailVisibility: true,
       };
 
-      await pb.collection('users').create(data);
+      await api.post('/users', data);
 
       await fetchUsers();
       return { success: true };
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      let msg = "Erro desconhecido";
+      if (axios.isAxiosError(err)) {
+        msg = err.response?.data?.error || err.message;
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       setError(msg);
       return { success: false, error: msg };
     } finally {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Cidade } from "../../store/useAppStore";
 import Input from "./input/InputField";
-import { pb } from "../../lib/pocketbase";
+import api from "../../services/api";
 
 interface AutocompleteCityProps {
   value?: string; // id_cidade
@@ -43,15 +43,14 @@ export default function AutocompleteCity({
       if (resolvedCitiesCache.has(value)) {
         setSearchTerm(toTitleCase(resolvedCitiesCache.get(value)!.cidade));
       } else {
-        pb.collection('cidades_hsp')
-          .getOne<Cidade>(value)
-          .then((record) => {
+        api.get<Cidade>(`/cidades/${value}`)
+          .then((res) => {
             if (!active) return;
+            const record = res.data;
             resolvedCitiesCache.set(value, record);
             setSearchTerm(toTitleCase(record.cidade));
           })
-          .catch((err) => {
-            console.error("Erro ao buscar localidade inicial por ID:", err);
+          .catch(() => {
             if (active) {
               setSearchTerm("");
             }
@@ -90,25 +89,17 @@ export default function AutocompleteCity({
     let active = true;
 
     const delayDebounceFn = setTimeout(() => {
-      // Lowercase search term
-      const lowerTerm = termClean.toLowerCase();
-      // PocketBase filter query using lowerTerm
-      const filterStr = pb.filter('cidade ~ {:search} || estado ~ {:search}', { search: lowerTerm });
-
-      pb.collection('cidades_hsp')
-        .getList<Cidade>(1, 10, {
-          filter: filterStr,
-          fields: 'id,cidade,estado',
-          sort: 'cidade',
-        })
+      api.get<Cidade[]>('/cidades', {
+        params: { search: termClean }
+      })
         .then((res) => {
           if (!active) return;
-          res.items.forEach((c) => resolvedCitiesCache.set(c.id, c));
-          setLocalCities(res.items);
+          const items = res.data.slice(0, 10);
+          items.forEach((c) => resolvedCitiesCache.set(c.id, c));
+          setLocalCities(items);
           setIsSearching(false);
         })
-        .catch((err) => {
-          console.error("Erro ao buscar cidades no banco:", err);
+        .catch(() => {
           if (active) {
             setLocalCities([]);
             setIsSearching(false);
