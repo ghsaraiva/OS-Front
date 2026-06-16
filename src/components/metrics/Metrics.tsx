@@ -1,68 +1,92 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { BoxIconLine, DocsIcon, CheckCircleIcon, GroupIcon } from "../../icons";
-import { pb } from "../../lib/pocketbase";
 import { useAuth } from "../../context/AuthContext";
+import { useAppStore } from "../../store/useAppStore";
+import api from "../../services/api";
+import { Skeleton } from "../ui/Skeleton";
 
 export default function Metrics() {
-  const [stats, setStats] = useState({
-    total: 0,
-    abertos: 0,
-    concluidos: 0,
-    clientes: 0,
-  });
   const { user, isAdmin } = useAuth();
+  const { budgets } = useAppStore();
+  const [statsData, setStatsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     const fetchStats = async () => {
-      if (!user) return;
-
       try {
-        let filter = "";
-        if (!isAdmin) {
-          filter = `user_id = "${user.id}"`;
+        const response = await api.get("/dashboard/stats", {
+          params: {
+            user_id: user?.id,
+            is_admin: isAdmin,
+          },
+        });
+        if (active) {
+          if (response.data?.kpis) {
+            setStatsData(response.data.kpis);
+          }
+          setIsLoading(false);
         }
-
-        // Fetch Total
-        const totalRes = await pb.collection("orcamentos").getList(1, 1, {
-          filter,
-          fields: "id",
-        });
-
-        // Fetch Abertos
-        const openFilter = filter
-          ? `(${filter}) && situacao = "Aberto"`
-          : 'situacao = "Aberto"';
-        const abertosRes = await pb.collection("orcamentos").getList(1, 1, {
-          filter: openFilter,
-          fields: "id",
-        });
-
-        // Fetch Concluídos (Técnico Finalizado)
-        const closedFilter = filter
-          ? `(${filter}) && situacao = "Técnico Finalizado"`
-          : 'situacao = "Técnico Finalizado"';
-        const concluidosRes = await pb.collection("orcamentos").getList(1, 1, {
-          filter: closedFilter,
-          fields: "id",
-        });
-
-        setStats({
-          total: totalRes.totalItems,
-          abertos: abertosRes.totalItems,
-          concluidos: concluidosRes.totalItems,
-          clientes: totalRes.totalItems, // Simplificação: cada orçamento é um cliente por enquanto
-        });
       } catch (err) {
-        console.error("Error fetching metrics:", err);
+        console.error("Erro ao buscar KPIs do dashboard:", err);
+        if (active) {
+          setIsLoading(false);
+        }
       }
     };
+    if (user?.id !== undefined) {
+      fetchStats();
+    }
+    return () => {
+      active = false;
+    };
+  }, [user?.id, isAdmin]);
 
-    fetchStats();
-  }, [user, isAdmin]);
+  const statsLocal = useMemo(() => {
+    const userBudgets = isAdmin
+      ? budgets
+      : budgets.filter((b) => b.user_id === user?.id);
+
+    const uniqueClientNames = new Set(
+      userBudgets
+        .map((b) => (b.nome_cliente ? b.nome_cliente.trim().toLowerCase() : ""))
+        .filter(Boolean),
+    );
+
+    return {
+      total: userBudgets.length,
+      abertos: userBudgets.filter((b) => b.situacao === "Aberto").length,
+      concluidos: userBudgets.filter((b) => b.situacao === "Técnico Finalizado")
+        .length,
+      clientes: uniqueClientNames.size,
+    };
+  }, [budgets, user, isAdmin]);
+
+  const stats = statsData || statsLocal;
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <div
+            key={index}
+            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+            aria-busy="true"
+          >
+            <Skeleton className="w-12 h-12 rounded-xl" />
+            <div className="mt-5 space-y-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-7 w-16" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const cards = [
     {
-      title: "Total Orçamentos",
+      title: "Total de Orçamentos",
       value: stats.total,
       icon: <BoxIconLine className="size-6" />,
       color: "text-brand-500 bg-brand-50 dark:bg-brand-500/10",
@@ -74,13 +98,13 @@ export default function Metrics() {
       color: "text-blue-500 bg-blue-50 dark:bg-blue-500/10",
     },
     {
-      title: "Finalizado",
+      title: "Finalizados",
       value: stats.concluidos,
       icon: <CheckCircleIcon className="size-6" />,
       color: "text-success-500 bg-success-50 dark:bg-success-500/10",
     },
     {
-      title: "Clientes",
+      title: "Total de Clientes",
       value: stats.clientes,
       icon: <GroupIcon className="size-6" />,
       color: "text-orange-500 bg-orange-50 dark:bg-orange-500/10",

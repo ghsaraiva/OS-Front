@@ -21,7 +21,6 @@
 # Large Data & Binary Files
 *.xlsx
 *.xls
-*.csv
 *.sql
 *.sqlite
 /pb_data

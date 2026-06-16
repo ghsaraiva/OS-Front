@@ -27,8 +27,8 @@ export default function SignInForm() {
       
       // Navigate on success
       navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Erro ao fazer login. Verifique suas credenciais.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao fazer login. Verifique suas credenciais.");
     } finally {
       setLoading(false);
     }

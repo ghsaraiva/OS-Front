@@ -3,9 +3,20 @@ import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
+import { useEffect } from "react";
+import { useAppStore } from "../store/useAppStore";
+import { useAuth } from "../context/AuthContext";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const { user } = useAuth();
+  const initApp = useAppStore((state) => state.initApp);
+
+  useEffect(() => {
+    if (user) {
+      initApp();
+    }
+  }, [user, initApp]);
 
   return (
     <div className="min-h-screen xl:flex">

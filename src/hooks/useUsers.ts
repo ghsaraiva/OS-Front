@@ -13,10 +13,9 @@ export const useUsers = () => {
       const records = await pb.collection('users').getFullList<UserRecord>({
         sort: '-created',
       });
-
       setUsers(records);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
       setLoading(false);
     }
@@ -45,9 +44,10 @@ export const useUsers = () => {
 
       await fetchUsers();
       return { success: true };
-    } catch (err: any) {
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      setError(msg);
+      return { success: false, error: msg };
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 import PocketBase from 'pocketbase';
 
-const PB_URL = 'http://150.136.18.45';
+const PB_URL = import.meta.env.VITE_POCKETBASE_URL ;
 export const pb = new PocketBase(PB_URL);
 
 // Disable auto-cancellation globally (recommended for React environments)
@@ -24,9 +24,10 @@ export interface OrcamentoRecord {
   nome_cliente: string;
   estado: string;
   cidade: string;
+  id_cidade?: string;
   situacao: string;
   created: string;
   updated: string;
   // Adicione outros campos conforme necessário para bater com o schema do PB
-  [key: string]: any;
+  [key: string]: unknown;
 }

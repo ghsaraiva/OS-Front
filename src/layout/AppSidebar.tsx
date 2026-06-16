@@ -3,16 +3,8 @@ import { Link, useLocation } from "react-router";
 
 // Assume these icons are imported from an icon library
 import {
-  BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   GridIcon,
-  ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
-  TableIcon,
-  UserCircleIcon,
   LockIcon,
   DocsIcon,
 } from "../icons";
@@ -43,25 +35,30 @@ const navItems: NavItem[] = [
     name: "Segurança",
     icon: <LockIcon />,
     roles: ["admin"],
-    subItems: [{ name: "Novo Usuário", path: "/seguranca/usuarios" }],
+    subItems: [{ name: "Novo Usuário", path: "/security/users" }],
   },
   {
     name: "Orçamentos",
     icon: <DocsIcon />,
     subItems: [
-      { name: "Novo Orçamento", path: "/orcamentos/novo" },
+      { name: "Novo Orçamento", path: "/budgets/new" },
+      {
+        name: "Gerencial",
+        path: "/budgets/management",
+        roles: ["admin"],
+      },
       {
         name: "Todos os Orçamentos",
-        path: "/orcamentos/todos",
+        path: "/budgets/all",
         roles: ["admin"],
       },
     ],
   },
-  {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
-  },
+  // {
+  //   icon: <CalenderIcon />,
+  //   name: "Calendar",
+  //   path: "/calendar",
+  // },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -118,7 +115,7 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  const renderMenuItems = (items: NavItem[], _menuType: "main" | "others") => (
+  const renderMenuItems = (items: NavItem[]) => (
     <ul className="flex flex-col gap-4">
       {items
         .filter(
@@ -299,7 +296,7 @@ const AppSidebar: React.FC = () => {
               >
                 Menu Principal
               </p>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(navItems)}
             </div>
           </div>
         </nav>
