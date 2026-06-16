@@ -4,13 +4,13 @@ import svgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/",
+  // Se estiver rodando no GitHub Actions, usa o caminho do repositório, senão usa a raiz
+  base: process.env.GITHUB_ACTIONS ? "/OS-Front/" : "/",
   plugins: [
     react(),
     svgr({
       svgrOptions: {
         icon: true,
-        // This will transform your SVG to a React component
         exportType: "named",
         namedExport: "ReactComponent",
       },

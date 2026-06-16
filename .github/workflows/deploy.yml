@@ -37,15 +37,18 @@ jobs:
           node-version: 20
           cache: 'npm'
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
+        env:
+          VITE_POCKETBASE_URL: http://150.136.18.45
+          VITE_API_URL: http://150.136.18.45/api
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
+          # Upload build directory
           path: './dist'
       - name: Deploy to GitHub Pages
         id: deployment
