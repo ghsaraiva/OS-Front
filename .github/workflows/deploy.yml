@@ -42,7 +42,7 @@ jobs:
         run: npm run build
         env:
           VITE_POCKETBASE_URL: http://150.136.18.45
-          VITE_API_URL: http://150.136.18.45/api
+          VITE_API_URL: http://150.136.18.45/v1
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
