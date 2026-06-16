@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router";
+import { HashRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import NotFound from "./pages/OtherPage/NotFound";
 import AppLayout from "./layout/AppLayout";
@@ -12,12 +12,10 @@ import AllBudgets from "./pages/Budgets/AllBudgets";
 import BudgetManagement from "./pages/Budgets/BudgetManagement";
 import { ToastProvider } from "./context/ToastContext";
 
-const basename = import.meta.env.BASE_URL === "/" ? "/" : import.meta.env.BASE_URL.slice(0, -1);
-
 export default function App() {
   return (
     <ToastProvider>
-      <Router basename={basename}>
+      <Router>
         <ScrollToTop />
         <Routes>
           {/* Auth Layout */}
