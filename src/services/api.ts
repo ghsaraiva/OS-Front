@@ -2,7 +2,7 @@ import axios from 'axios';
 import { pb } from '../lib/pocketbase';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3002/api/calculos',
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 // Adiciona o token do PocketBase nas requisições para o backend
