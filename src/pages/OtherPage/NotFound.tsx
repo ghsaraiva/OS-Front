@@ -16,9 +16,9 @@ export default function NotFound() {
             Erro 404
           </h1>
 
-          <img src="/images/error/404.svg" alt="404" className="dark:hidden mx-auto" />
+          <img src={`${import.meta.env.BASE_URL}images/error/404.svg`} alt="404" className="dark:hidden mx-auto" />
           <img
-            src="/images/error/404-dark.svg"
+            src={`${import.meta.env.BASE_URL}images/error/404-dark.svg`}
             alt="404"
             className="hidden dark:block mx-auto"
           />

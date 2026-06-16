@@ -20,7 +20,7 @@ export default function AuthLayout({
               <Link to="/" className="block mb-4">
                 <img
                   className="w-20 h-auto"
-                  src="/images/logo.png"
+                  src={`${import.meta.env.BASE_URL}images/logo.png`}
                   alt="Logo"
                 />
               </Link>

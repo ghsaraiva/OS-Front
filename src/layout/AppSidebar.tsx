@@ -257,7 +257,7 @@ const AppSidebar: React.FC = () => {
           <div className="flex items-center gap-2 ">
             {" "}
             <img
-              src="/images/logo.png"
+              src={`${import.meta.env.BASE_URL}images/logo.png`}
               alt="Logo"
               className={`${
                 isExpanded || isHovered || isMobileOpen ? "w-10" : "w-5"

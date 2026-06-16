@@ -12,10 +12,12 @@ import AllBudgets from "./pages/Budgets/AllBudgets";
 import BudgetManagement from "./pages/Budgets/BudgetManagement";
 import { ToastProvider } from "./context/ToastContext";
 
+const basename = import.meta.env.BASE_URL === "/" ? "/" : import.meta.env.BASE_URL.slice(0, -1);
+
 export default function App() {
   return (
     <ToastProvider>
-      <Router basename="/">
+      <Router basename={basename}>
         <ScrollToTop />
         <Routes>
           {/* Auth Layout */}
