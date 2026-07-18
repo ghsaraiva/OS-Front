@@ -82,15 +82,17 @@ export default function BudgetManagement() {
   const [isCalculandoRetorno, setIsCalculandoRetorno] = useState(false);
   const [isCalculandoLicenciamento, setIsCalculandoLicenciamento] = useState(false);
   const [isCalculandoPrecoFinal, setIsCalculandoPrecoFinal] = useState(false);
+  const [isCalculandoHomologacao, setIsCalculandoHomologacao] = useState(false);
 
   const isSection4Loading =
     isCalculandoDimensionamento ||
     isCalculandoSistema ||
     isCalculandoRetorno ||
     isCalculandoLicenciamento ||
-    isCalculandoPrecoFinal;
+    isCalculandoPrecoFinal ||
+    isCalculandoHomologacao;
 
-  const isSection5Loading = isCalculandoLicenciamento || isCalculandoPrecoFinal;
+  const isSection5Loading = isCalculandoLicenciamento || isCalculandoPrecoFinal || isCalculandoHomologacao;
 
   const {
     control,
@@ -560,6 +562,38 @@ export default function BudgetManagement() {
     const timer = setTimeout(triggerLicenciamento, 800);
     return () => clearTimeout(timer);
   }, [watchedValorKit, watchedPorcentagemKit, setValue, formatCurrency, isDirty]);
+
+  // Passo 4.5: Atualização Dinâmica do Valor de Homologação com base na Potência do Inversor
+  useEffect(() => {
+    if (!isDirty) return;
+    const triggerHomologacao = async () => {
+      const pot = parseFloat(watchedPotenciaInversor?.toString().replace(",", ".")) || 0;
+      const qtd = parseInt(watchedQtdInversores?.toString()) || 1;
+      if (pot > 0) {
+        setIsCalculandoHomologacao(true);
+        try {
+          const response = await api.post("/homologacao", {
+            potencia_inversor: pot,
+            quantidade_inversores: qtd,
+          });
+          if (response.data) {
+            setValue(
+              "valor_homologacao",
+              formatCurrency(response.data.valorHomologacao || 0),
+            );
+          }
+        } catch {
+          // Silent
+        } finally {
+          setIsCalculandoHomologacao(false);
+        }
+      } else {
+        setIsCalculandoHomologacao(false);
+      }
+    };
+    const timer = setTimeout(triggerHomologacao, 800);
+    return () => clearTimeout(timer);
+  }, [watchedPotenciaInversor, watchedQtdInversores, setValue, formatCurrency, isDirty]);
 
   // Passo 5: Preço Final (Cascata de Markup)
   useEffect(() => {
@@ -1821,11 +1855,15 @@ export default function BudgetManagement() {
                         name="valor_homologacao"
                         control={control}
                         render={({ field }) => (
-                          <Input
-                            {...field}
-                            readOnly
-                            className="bg-gray-50 dark:bg-white/5"
-                          />
+                          isSection5Loading ? (
+                            <Skeleton className="h-11 w-full" />
+                          ) : (
+                            <Input
+                              {...field}
+                              readOnly
+                              className="bg-gray-50 dark:bg-white/5"
+                            />
+                          )
                         )}
                       />
                     </div>
