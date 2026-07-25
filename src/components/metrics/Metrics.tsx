@@ -1,15 +1,14 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BoxIconLine, DocsIcon, CheckCircleIcon, GroupIcon } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
-import { useAppStore } from "../../store/useAppStore";
 import api from "../../services/api";
 import { Skeleton } from "../ui/Skeleton";
 
 export default function Metrics() {
   const { user, isAdmin } = useAuth();
-  const { budgets } = useAppStore();
   const [statsData, setStatsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -29,6 +28,7 @@ export default function Metrics() {
         }
       } catch (err) {
         if (active) {
+          setHasError(true);
           setIsLoading(false);
         }
       }
@@ -41,27 +41,7 @@ export default function Metrics() {
     };
   }, [user?.id, isAdmin]);
 
-  const statsLocal = useMemo(() => {
-    const userBudgets = isAdmin
-      ? budgets
-      : budgets.filter((b) => b.user_id === user?.id);
-
-    const uniqueClientNames = new Set(
-      userBudgets
-        .map((b) => (b.nome_cliente ? b.nome_cliente.trim().toLowerCase() : ""))
-        .filter(Boolean),
-    );
-
-    return {
-      total: userBudgets.length,
-      abertos: userBudgets.filter((b) => b.situacao === "Aberto").length,
-      concluidos: userBudgets.filter((b) => b.situacao === "Técnico Finalizado")
-        .length,
-      clientes: uniqueClientNames.size,
-    };
-  }, [budgets, user, isAdmin]);
-
-  const stats = statsData || statsLocal;
+  const stats = statsData;
 
   if (isLoading) {
     return (
@@ -76,6 +56,33 @@ export default function Metrics() {
             <div className="mt-5 space-y-2">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-7 w-16" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (hasError || !stats) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <div
+            key={index}
+            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+          >
+            <div className="flex items-center justify-center w-12 h-12 rounded-xl text-gray-400 bg-gray-50 dark:bg-white/[0.05]">
+              <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+            </div>
+            <div className="mt-5">
+              <span className="text-sm text-gray-400 dark:text-gray-500">
+                Indisponível
+              </span>
+              <h4 className="mt-2 font-bold text-gray-400 text-title-sm dark:text-gray-500">
+                --
+              </h4>
             </div>
           </div>
         ))}

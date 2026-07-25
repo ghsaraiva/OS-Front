@@ -82,35 +82,8 @@ export default function BudgetDetails() {
 
     setIsSavingPrice(true);
     try {
-      const TAXA_SEGURO = 0.015;
-      const TAXA_IMPOSTO = 0.15;
-
-      const seguro = Number((newPrice * TAXA_SEGURO).toFixed(2));
-      const kitLicenciado = orcamento.valor_kit_final || 0;
-      const imposto = Number(
-        (Math.max(newPrice - kitLicenciado, 0) * TAXA_IMPOSTO).toFixed(2),
-      );
-      const margemSeguranca = orcamento.margem_seguranca || 0;
-      const custoDireto =
-        (orcamento.valor_kit_final || 0) +
-        (orcamento.valor_mao_obra_final || 0) +
-        (orcamento.valor_equip_local_final || 0) +
-        (orcamento.valor_homologacao || 0);
-      const custoProjeto = Number(
-        (custoDireto + margemSeguranca + seguro + imposto).toFixed(2),
-      );
-      const lucroLiquidoPrevisto = Number((newPrice - custoProjeto).toFixed(2));
-      const lucroLiquidoPerc = Number(
-        ((lucroLiquidoPrevisto / newPrice) * 100).toFixed(2),
-      );
-
-      const response = await api.patch<Orcamento>(`/budgets/${orcamento.id}`, {
+      const response = await api.patch<Orcamento>(`/budgets/${orcamento.id}/preco-venda`, {
         preco_final_venda: newPrice,
-        seguro,
-        imposto,
-        custo_projeto: custoProjeto,
-        lucro_liquido_previsto: lucroLiquidoPrevisto,
-        lucro_liquido_perc: lucroLiquidoPerc,
       });
 
       const updatedRecord = response.data;

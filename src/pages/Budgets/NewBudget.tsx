@@ -51,10 +51,11 @@ export default function NewBudget() {
     },
   });
 
-  const parseCurrencyToNumber = (value: string) => {
+  const parseCurrencyToNumber = (value: string | number) => {
     if (!value) return 0;
-    const clean = value.replace(/\./g, "").replace(",", ".");
-    return parseFloat(clean);
+    if (typeof value === "number") return value;
+    const clean = value.toString().replace(/[^\d,]/g, "").replace(",", ".");
+    return parseFloat(clean) || 0;
   };
 
   const formatCurrency = (value: string | number) => {
