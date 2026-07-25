@@ -73,14 +73,19 @@ export default function BudgetManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [savedBudgetId, setSavedBudgetId] = useState<string | null>(null);
-  const [customMarginOption, setCustomMarginOption] = useState<{ value: string; label: string } | null>(null);
+  const [customMarginOption, setCustomMarginOption] = useState<{
+    value: string;
+    label: string;
+  } | null>(null);
 
   const lastChangedField = useRef<"price" | "margin" | null>(null);
 
-  const [isCalculandoDimensionamento, setIsCalculandoDimensionamento] = useState(false);
+  const [isCalculandoDimensionamento, setIsCalculandoDimensionamento] =
+    useState(false);
   const [isCalculandoSistema, setIsCalculandoSistema] = useState(false);
   const [isCalculandoRetorno, setIsCalculandoRetorno] = useState(false);
-  const [isCalculandoLicenciamento, setIsCalculandoLicenciamento] = useState(false);
+  const [isCalculandoLicenciamento, setIsCalculandoLicenciamento] =
+    useState(false);
   const [isCalculandoPrecoFinal, setIsCalculandoPrecoFinal] = useState(false);
 
   const isSection4Loading =
@@ -136,7 +141,7 @@ export default function BudgetManagement() {
       porcentagem_kit: "0",
       mao_obra: "100,00",
       equipamento_local: "60,00",
-      lucro_liquido_perc: "20",
+      lucro_liquido_perc: "20,00",
       valor_kit_final: "0,00",
       lucro_equipamento: "0,00",
       valor_mao_obra_final: "0,00",
@@ -188,10 +193,12 @@ export default function BudgetManagement() {
     return `${formattedInteger},${decimalPart}`;
   }, []);
 
-  const parseCurrencyToNumber = (value: string) => {
+  const parseCurrencyToNumber = (value: string | number) => {
     if (!value) return 0;
-    const clean = value.replace(/\./g, "").replace(",", ".");
-    return parseFloat(clean);
+    if (typeof value === "number") return value;
+    // Remove tudo que não for dígito e vírgula (corrige espaços em branco do toLocaleString)
+    const clean = value.toString().replace(/[^\d,]/g, "").replace(",", ".");
+    return parseFloat(clean) || 0;
   };
 
   // Watchers
@@ -234,7 +241,9 @@ export default function BudgetManagement() {
     });
     if (customMarginOption) {
       const exists = baseOptions.some(
-        (o) => parseFloat(o.value.replace(",", ".")) === parseFloat(customMarginOption.value.replace(",", "."))
+        (o) =>
+          parseFloat(o.value.replace(",", ".")) ===
+          parseFloat(customMarginOption.value.replace(",", ".")),
       );
       if (!exists) {
         return [customMarginOption, ...baseOptions];
@@ -383,7 +392,12 @@ export default function BudgetManagement() {
 
   // Passo 1: Dimensionamento Mínimo
   useEffect(() => {
-    if (isDirty) {
+    const isReady = !!(
+      watchedIdCidade &&
+      watchedConsumoMes &&
+      watchedValorTarifa
+    );
+    if (isDirty && isReady) {
       setIsCalculandoDimensionamento(true);
     }
     const getDimensionamento = async () => {
@@ -414,7 +428,10 @@ export default function BudgetManagement() {
 
   // Passo 2: Cálculo do Sistema Real (kWp)
   useEffect(() => {
-    if (isDirty) {
+    const potencia = parseInt(watchedPotenciaPainel);
+    const qtd = parseInt(watchedQtdPaineis);
+    const isReady = potencia > 0 && qtd > 0;
+    if (isDirty && isReady) {
       setIsCalculandoSistema(true);
     }
     const getSistemaReal = async () => {
@@ -451,7 +468,17 @@ export default function BudgetManagement() {
 
   // Passo 3: Geração e Retorno Financeiro (Cálculos de Viabilidade no Backend)
   useEffect(() => {
-    if (isDirty) {
+    const tarifa = parseCurrencyToNumber(watchedValorTarifa);
+    const consumoRs = parseCurrencyToNumber(watchedConsumoMes);
+    const qtd = parseInt(watchedQtdPaineis);
+    const isReady = !!(
+      kwpSistema &&
+      mediaCalc &&
+      tarifa > 0 &&
+      consumoRs > 0 &&
+      qtd > 0
+    );
+    if (isDirty && isReady) {
       setIsCalculandoRetorno(true);
     }
     const triggerRetorno = async () => {
@@ -525,7 +552,9 @@ export default function BudgetManagement() {
 
   // Passo 4: Licenciamento do Kit
   useEffect(() => {
-    if (isDirty) {
+    const valorKitNum = parseCurrencyToNumber(watchedValorKit);
+    const isReady = valorKitNum > 0;
+    if (isDirty && isReady) {
       setIsCalculandoLicenciamento(true);
     }
     const triggerLicenciamento = async () => {
@@ -559,11 +588,23 @@ export default function BudgetManagement() {
     };
     const timer = setTimeout(triggerLicenciamento, 800);
     return () => clearTimeout(timer);
-  }, [watchedValorKit, watchedPorcentagemKit, setValue, formatCurrency, isDirty]);
+  }, [
+    watchedValorKit,
+    watchedPorcentagemKit,
+    setValue,
+    formatCurrency,
+    isDirty,
+  ]);
 
   // Passo 5: Preço Final (Cascata de Markup)
   useEffect(() => {
-    if (isDirty) {
+    const kitLicenciado = parseCurrencyToNumber(watchedValorKitFinal);
+    const qtdPaineis = parseInt(watchedQtdPaineis);
+    const lucro = parseFloat(watchedLucroPerc?.toString().replace(",", "."));
+    const isReady =
+      kitLicenciado > 0 && qtdPaineis > 0 && !isNaN(lucro) && lucro > 0;
+
+    if (isDirty && isReady) {
       if (
         document.activeElement?.getAttribute("name") !== "preco_final_venda" &&
         lastChangedField.current !== "price"
@@ -574,7 +615,9 @@ export default function BudgetManagement() {
     const triggerPrecoFinal = async () => {
       if (!isDirty) return;
       // Se o usuário estiver editando o preço final de venda diretamente, não calculamos o preço sugerido do lucro
-      if (document.activeElement?.getAttribute("name") === "preco_final_venda") {
+      if (
+        document.activeElement?.getAttribute("name") === "preco_final_venda"
+      ) {
         setIsCalculandoPrecoFinal(false);
         return;
       }
@@ -596,9 +639,14 @@ export default function BudgetManagement() {
             valorHomologacao: parseCurrencyToNumber(watchedHomologacao),
             porcentagemLucroLiquido: lucro,
             quantidade_paineis: qtdPaineis,
+            quantidade_inversores: parseInt(watchedQtdInversores) || 0,
+            potencia_inversor: parseFloat(watchedPotenciaInversor?.toString().replace(",", ".")) || 0,
           });
           const data = response.data;
           if (data) {
+            if (data.valorHomologacaoCalculado) {
+              setValue("valor_homologacao", formatCurrency(data.valorHomologacaoCalculado));
+            }
             setValue(
               "valor_mao_obra_final",
               formatCurrency(data.valorMaoDeObraTotal || 0),
@@ -642,7 +690,8 @@ export default function BudgetManagement() {
     watchedMaoObra,
     watchedEquipLocal,
     watchedLucroPerc,
-    watchedHomologacao,
+    watchedQtdInversores,
+    watchedPotenciaInversor,
     watchedQtdPaineis,
     setValue,
     formatCurrency,
@@ -658,7 +707,8 @@ export default function BudgetManagement() {
 
       const loadedMargin = orcamento.lucro_liquido_perc || 20;
       const marginStr = loadedMargin.toFixed(2).replace(".", ",");
-      const isBaseOption = loadedMargin >= 10 && loadedMargin <= 25 && loadedMargin % 1 === 0;
+      const isBaseOption =
+        loadedMargin >= 10 && loadedMargin <= 25 && loadedMargin % 1 === 0;
       if (!isBaseOption) {
         setCustomMarginOption({ value: marginStr, label: `${marginStr}%` });
       } else {
@@ -667,15 +717,17 @@ export default function BudgetManagement() {
 
       let idCidade = orcamento.id_cidade || "";
       if (!idCidade && orcamento.cidade && orcamento.estado) {
-        api.get<Cidade[]>('/cidades', { params: { search: orcamento.cidade } })
+        api
+          .get<Cidade[]>("/cidades", { params: { search: orcamento.cidade } })
           .then((res) => {
             const found = res.data.find(
-              c => c.cidade.toLowerCase() === orcamento.cidade.toLowerCase() &&
-                   c.estado.toLowerCase() === orcamento.estado.toLowerCase()
+              (c) =>
+                c.cidade.toLowerCase() === orcamento.cidade.toLowerCase() &&
+                c.estado.toLowerCase() === orcamento.estado.toLowerCase(),
             );
             if (found) {
               setValue("id_cidade", found.id);
-              const val = found.mediacalc > 100 ? found.mediacalc / 1000 : found.mediacalc;
+              const val = found.mediacalc;
               setMediaCalc(val);
             }
           })
@@ -683,10 +735,11 @@ export default function BudgetManagement() {
             // Resolving city fail silenced
           });
       } else if (idCidade) {
-        api.get<Cidade>(`/cidades/${idCidade}`)
+        api
+          .get<Cidade>(`/cidades/${idCidade}`)
           .then((res) => {
             if (res.data) {
-              const val = res.data.mediacalc > 100 ? res.data.mediacalc / 1000 : res.data.mediacalc;
+              const val = res.data.mediacalc;
               setMediaCalc(val);
             }
           })
@@ -751,7 +804,7 @@ export default function BudgetManagement() {
         porcentagem_kit: (orcamento.porcentagem_kit || 0).toString(),
         mao_obra: formatCurrency(orcamento.mao_obra || 100),
         equipamento_local: formatCurrency(orcamento.equipamento_local || 60),
-        lucro_liquido_perc: (orcamento.lucro_liquido_perc !== undefined ? orcamento.lucro_liquido_perc : 20)
+        lucro_liquido_perc: (orcamento.lucro_liquido_perc || 20)
           .toFixed(2)
           .replace(".", ","),
         valor_homologacao: formatCurrency(orcamento.valor_homologacao || 500),
@@ -865,36 +918,10 @@ export default function BudgetManagement() {
       valorMaoDeObra: parseCurrencyToNumber(data.mao_obra),
       valorEquipamentoLocal: parseCurrencyToNumber(data.equipamento_local),
       valorHomologacao: parseCurrencyToNumber(data.valor_homologacao),
-      porcentagemLucroLiquido: parseFloat(data.lucro_liquido_perc.toString().replace(",", ".")),
+      porcentagemLucroLiquido: parseFloat(
+        data.lucro_liquido_perc.toString().replace(",", "."),
+      ),
       observacao: data.observacao,
-
-      kwp_minimo: kwpMinimo,
-      kwp_sistema: kwpSistema,
-
-      area_estimada: parseCurrencyToNumber(data.area_estimada),
-      geracao_mes: parseCurrencyToNumber(data.geracao_media_mes),
-      geracao_ano: parseCurrencyToNumber(data.geracao_media_ano),
-      valor_pago_mes: parseCurrencyToNumber(data.valor_pago_mes),
-      valor_pago_ano: parseCurrencyToNumber(data.valor_pago_ano),
-      porcentagem_reducao:
-        parseCurrencyToNumber(data.porcentagem_reducao) / 100,
-      tempo_retorno: data.tempo_retorno,
-
-      valor_kit_final: parseCurrencyToNumber(data.valor_kit_final),
-      lucro_equipamento: parseCurrencyToNumber(data.lucro_equipamento),
-      valor_mao_obra_final: parseCurrencyToNumber(data.valor_mao_obra_final),
-      valor_equip_local_final: parseCurrencyToNumber(
-        data.valor_equip_local_final,
-      ),
-      seguro: parseCurrencyToNumber(data.seguro),
-      custo_projeto: parseCurrencyToNumber(data.valor_investido),
-      imposto: parseCurrencyToNumber(data.imposto),
-      margem_seguranca: parseCurrencyToNumber(data.margem_seguranca),
-      lucro_liquido_previsto: parseCurrencyToNumber(
-        data.lucro_liquido_previsto,
-      ),
-      preco_final_venda: parseCurrencyToNumber(data.preco_final_venda),
-
       situacao: data.situacao,
 
       garantia_fabrica_modulo: data.garantia_fabrica_modulo,
@@ -910,12 +937,6 @@ export default function BudgetManagement() {
       caracteristica_estrutura_3: data.caracteristica_estrutura_3,
       caracteristica_estrutura_4: data.caracteristica_estrutura_4,
       caracteristica_estrutura_5: data.caracteristica_estrutura_5,
-
-      composicao_1: data.composicao_1,
-      composicao_2: data.composicao_2,
-      composicao_3: data.composicao_3,
-      composicao_4: data.composicao_4,
-      composicao_5: data.composicao_5,
     };
 
     try {
@@ -1525,7 +1546,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="sistema_kwp"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isCalculandoSistema ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1535,7 +1556,7 @@ export default function BudgetManagement() {
                               className="bg-brand-50 dark:bg-brand-500/5 font-bold text-brand-600"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1543,7 +1564,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="geracao_faturavel"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1553,7 +1574,7 @@ export default function BudgetManagement() {
                               className="bg-success-50 dark:bg-success-500/5 font-bold text-success-600"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1561,7 +1582,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="qtd_composicao"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isCalculandoSistema ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1571,7 +1592,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1579,7 +1600,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="area_estimada"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1589,7 +1610,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1597,7 +1618,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="geracao_media_mes"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1607,7 +1628,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1615,7 +1636,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="geracao_media_ano"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1625,7 +1646,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1633,7 +1654,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="valor_pago_mes"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1643,7 +1664,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1651,7 +1672,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="valor_pago_ano"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1661,7 +1682,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1669,7 +1690,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="porcentagem_reducao"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1684,7 +1705,7 @@ export default function BudgetManagement() {
                               </span>
                             </div>
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1692,7 +1713,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="tempo_retorno"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection4Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1702,7 +1723,7 @@ export default function BudgetManagement() {
                               className="bg-amber-50 dark:bg-amber-500/5 font-bold text-amber-700"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                   </div>
@@ -1748,7 +1769,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="valor_kit_final"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isCalculandoLicenciamento ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1758,7 +1779,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1766,7 +1787,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="lucro_equipamento"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isCalculandoLicenciamento ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1776,7 +1797,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1784,7 +1805,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="valor_mao_obra_final"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1794,7 +1815,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1802,7 +1823,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="valor_equip_local_final"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1812,7 +1833,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1834,7 +1855,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="seguro"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1844,7 +1865,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1852,7 +1873,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="imposto"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1862,7 +1883,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1870,7 +1891,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="margem_seguranca"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1880,7 +1901,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div>
@@ -1888,7 +1909,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="valor_investido"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1898,7 +1919,7 @@ export default function BudgetManagement() {
                               className="bg-gray-50 dark:bg-white/5 font-bold"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div className="lg:col-span-1">
@@ -1906,7 +1927,7 @@ export default function BudgetManagement() {
                       <Controller
                         name="lucro_liquido_previsto"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }) =>
                           isSection5Loading ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -1916,7 +1937,7 @@ export default function BudgetManagement() {
                               className="bg-success-50 dark:bg-success-500/5 text-success-600 font-bold"
                             />
                           )
-                        )}
+                        }
                       />
                     </div>
                     <div className="lg:col-span-1">
@@ -1924,62 +1945,103 @@ export default function BudgetManagement() {
                       <Controller
                         name="preco_final_venda"
                         control={control}
-                        render={({ field }) => (
-                          isSection5Loading && document.activeElement?.getAttribute("name") !== "preco_final_venda" ? (
+                        render={({ field }) =>
+                          isSection5Loading &&
+                          document.activeElement?.getAttribute("name") !==
+                            "preco_final_venda" ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
                             <Input
-                            {...field}
-                            onChange={(e) => {
-                              lastChangedField.current = "price";
-                              const formatted = formatCurrency(e.target.value);
-                              field.onChange(formatted);
-                              
-                              const newPrice = parseCurrencyToNumber(formatted);
-                              if (newPrice > 0) {
-                                const TAXA_SEGURO = 0.015;
-                                const TAXA_IMPOSTO = 0.15;
-
-                                const seguro = Number((newPrice * TAXA_SEGURO).toFixed(2));
-                                const kitLicenciado = parseCurrencyToNumber(watch("valor_kit_final") || "0");
-                                const imposto = Number(
-                                  (Math.max(newPrice - kitLicenciado, 0) * TAXA_IMPOSTO).toFixed(2)
+                              {...field}
+                              onChange={(e) => {
+                                lastChangedField.current = "price";
+                                const formatted = formatCurrency(
+                                  e.target.value,
                                 );
-                                const margemSeguranca = parseCurrencyToNumber(watch("margem_seguranca") || "0");
-                                const custoDireto =
-                                  kitLicenciado +
-                                  parseCurrencyToNumber(watch("valor_mao_obra_final") || "0") +
-                                  parseCurrencyToNumber(watch("valor_equip_local_final") || "0") +
-                                  parseCurrencyToNumber(watch("valor_homologacao") || "0");
-                                const custoProjeto = Number(
-                                  (custoDireto + margemSeguranca + seguro + imposto).toFixed(2)
-                                );
-                                const lucroLiquidoPrevisto = Number((newPrice - custoProjeto).toFixed(2));
-                                const lucroLiquidoPerc = Number(
-                                  ((lucroLiquidoPrevisto / newPrice) * 100).toFixed(2)
-                                );
+                                field.onChange(formatted);
 
-                                const marginStr = lucroLiquidoPerc.toFixed(2).replace(".", ",");
-                                setCustomMarginOption({ value: marginStr, label: `${marginStr}%` });
+                                const newPrice =
+                                  parseCurrencyToNumber(formatted);
+                                if (newPrice > 0) {
+                                  const TAXA_SEGURO = 0.015;
+                                  const TAXA_IMPOSTO = 0.15;
 
-                                setValue("seguro", formatCurrency(seguro));
-                                setValue("imposto", formatCurrency(imposto));
-                                setValue("valor_investido", formatCurrency(custoProjeto));
-                                setValue("lucro_liquido_previsto", formatCurrency(lucroLiquidoPrevisto));
-                                setValue("lucro_liquido_perc", marginStr);
-                              } else {
-                                setValue("seguro", "0,00");
-                                setValue("imposto", "0,00");
-                                setValue("valor_investido", "0,00");
-                                setValue("lucro_liquido_previsto", "0,00");
-                                setValue("lucro_liquido_perc", "0,00");
-                                setCustomMarginOption(null);
-                              }
-                            }}
-                            className="bg-brand-50 dark:bg-brand-500/5 text-brand-600 font-bold text-lg focus:border-brand-500"
-                          />
+                                  const seguro = Number(
+                                    (newPrice * TAXA_SEGURO).toFixed(2),
+                                  );
+                                  const kitLicenciado = parseCurrencyToNumber(
+                                    watch("valor_kit_final") || "0",
+                                  );
+                                  const imposto = Number(
+                                    (
+                                      Math.max(newPrice - kitLicenciado, 0) *
+                                      TAXA_IMPOSTO
+                                    ).toFixed(2),
+                                  );
+                                  const margemSeguranca = parseCurrencyToNumber(
+                                    watch("margem_seguranca") || "0",
+                                  );
+                                  const custoDireto =
+                                    kitLicenciado +
+                                    parseCurrencyToNumber(
+                                      watch("valor_mao_obra_final") || "0",
+                                    ) +
+                                    parseCurrencyToNumber(
+                                      watch("valor_equip_local_final") || "0",
+                                    ) +
+                                    parseCurrencyToNumber(
+                                      watch("valor_homologacao") || "0",
+                                    );
+                                  const custoProjeto = Number(
+                                    (
+                                      custoDireto +
+                                      margemSeguranca +
+                                      seguro +
+                                      imposto
+                                    ).toFixed(2),
+                                  );
+                                  const lucroLiquidoPrevisto = Number(
+                                    (newPrice - custoProjeto).toFixed(2),
+                                  );
+                                  const lucroLiquidoPerc = Number(
+                                    (
+                                      (lucroLiquidoPrevisto / newPrice) *
+                                      100
+                                    ).toFixed(2),
+                                  );
+
+                                  const marginStr = lucroLiquidoPerc
+                                    .toFixed(2)
+                                    .replace(".", ",");
+                                  setCustomMarginOption({
+                                    value: marginStr,
+                                    label: `${marginStr}%`,
+                                  });
+
+                                  setValue("seguro", formatCurrency(seguro));
+                                  setValue("imposto", formatCurrency(imposto));
+                                  setValue(
+                                    "valor_investido",
+                                    formatCurrency(custoProjeto),
+                                  );
+                                  setValue(
+                                    "lucro_liquido_previsto",
+                                    formatCurrency(lucroLiquidoPrevisto),
+                                  );
+                                  setValue("lucro_liquido_perc", marginStr);
+                                } else {
+                                  setValue("seguro", "0,00");
+                                  setValue("imposto", "0,00");
+                                  setValue("valor_investido", "0,00");
+                                  setValue("lucro_liquido_previsto", "0,00");
+                                  setValue("lucro_liquido_perc", "0,00");
+                                  setCustomMarginOption(null);
+                                }
+                              }}
+                              className="bg-brand-50 dark:bg-brand-500/5 text-brand-600 font-bold text-lg focus:border-brand-500"
+                            />
                           )
-                        )}
+                        }
                       />
                     </div>
                   </div>
