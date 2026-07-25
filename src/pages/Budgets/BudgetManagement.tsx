@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -15,6 +15,7 @@ import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { ChevronDownIcon, ChevronUpIcon } from "../../icons";
 import api from "../../services/api";
+import { PdfPreviewModal } from "../../components/ui/modal/PdfPreviewModal";
 
 import Select from "../../components/form/Select";
 import AutocompleteCity from "../../components/form/AutocompleteCity";
@@ -71,8 +72,12 @@ export default function BudgetManagement() {
     useState(true);
   const [isSectionComposicaoOpen, setIsSectionComposicaoOpen] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [savedBudgetId, setSavedBudgetId] = useState<string | null>(null);
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
   const [customMarginOption, setCustomMarginOption] = useState<{
     value: string;
     label: string;
@@ -981,8 +986,8 @@ export default function BudgetManagement() {
           "Sucesso",
           "Orçamento gerencial salvo com sucesso!",
         );
-        setSavedBudgetId(selectedOrcamento.id);
-        setIsPdfModalOpen(true);
+        setSavedBudgetId(response.data.data.id);
+        setIsSuccessModalOpen(true);
         setSelectedOrcamento(null);
         fetchBudgets();
       }
@@ -2383,8 +2388,8 @@ export default function BudgetManagement() {
       </div>
 
       <Modal
-        isOpen={isPdfModalOpen}
-        onClose={() => setIsPdfModalOpen(false)}
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
         className="max-w-[450px] p-6 text-center sm:p-8"
         showCloseButton={false}
       >
@@ -2413,21 +2418,44 @@ export default function BudgetManagement() {
           </p>
           <div className="flex w-full flex-col gap-3 sm:flex-row">
             <button
-              onClick={() => setIsPdfModalOpen(false)}
+              onClick={() => setIsSuccessModalOpen(false)}
               className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors dark:bg-white/[0.05] dark:text-gray-300 dark:hover:bg-white/[0.1]"
             >
               Agora não
             </button>
-            <Link
-              to={`/budgets/details/${savedBudgetId}`}
-              onClick={() => setIsPdfModalOpen(false)}
-              className="flex-1 px-4 py-2.5 text-sm font-semibold text-center text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-theme-sm"
+            <button
+              disabled={isGeneratingPdf}
+              onClick={async () => {
+                if (!savedBudgetId) return;
+                setIsGeneratingPdf(true);
+                addToast("info", "Gerando PDF", "Sua proposta está sendo montada...");
+                try {
+                  const res = await api.post(`/calculos/gerar-pdf/${savedBudgetId}`);
+                  if (res.data?.pdfUrl) {
+                    setPdfUrl(res.data.pdfUrl);
+                    setIsSuccessModalOpen(false);
+                    setIsPdfViewerOpen(true);
+                  }
+                } catch (err) {
+                  addToast("error", "Erro ao Gerar", "Não foi possível gerar a proposta.");
+                } finally {
+                  setIsGeneratingPdf(false);
+                }
+              }}
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-center text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-theme-sm disabled:opacity-70 flex justify-center items-center gap-2"
             >
-              Sim, visualizar
-            </Link>
+              {isGeneratingPdf && <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+              {isGeneratingPdf ? "Gerando..." : "Gerar Orçamento / Imprimir PDF"}
+            </button>
           </div>
         </div>
       </Modal>
+
+      <PdfPreviewModal
+        isOpen={isPdfViewerOpen}
+        onClose={() => setIsPdfViewerOpen(false)}
+        pdfUrl={pdfUrl}
+      />
     </>
   );
 }

@@ -26,6 +26,7 @@ import {
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
+import { PdfPreviewModal } from "../../components/ui/modal/PdfPreviewModal";
 
 export default function BudgetDetails() {
   const { isAdmin } = useAuth();
@@ -37,6 +38,10 @@ export default function BudgetDetails() {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [tempPrice, setTempPrice] = useState("");
   const [isSavingPrice, setIsSavingPrice] = useState(false);
+  
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   useEffect(() => {
     if (id && budgets.length > 0) {
@@ -106,6 +111,25 @@ export default function BudgetDetails() {
       );
     } finally {
       setIsSavingPrice(false);
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!orcamento) return;
+    setIsGeneratingPdf(true);
+    addToast("info", "Gerando PDF", "Sua proposta está sendo montada...");
+    
+    try {
+      const response = await api.post(`/calculos/gerar-pdf/${orcamento.id}`);
+      if (response.data?.pdfUrl) {
+        setPdfUrl(response.data.pdfUrl);
+        setIsPdfModalOpen(true);
+      }
+    } catch (err) {
+      console.error(err);
+      addToast("error", "Erro ao Gerar PDF", "Ocorreu um erro ao gerar a proposta comercial.");
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -206,11 +230,16 @@ export default function BudgetDetails() {
               </Link>
             )}
             <button
-              onClick={() => window.print()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 shadow-theme-xs transition-colors"
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPdf}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 shadow-theme-xs transition-colors disabled:opacity-70"
             >
-              <Printer className="size-4" />
-              Imprimir / PDF
+              {isGeneratingPdf ? (
+                <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Printer className="size-4" />
+              )}
+              {isGeneratingPdf ? "Gerando..." : "Imprimir / PDF"}
             </button>
           </div>
         </div>
@@ -780,6 +809,12 @@ export default function BudgetDetails() {
           </div>
         </div>
       </div>
+      
+      <PdfPreviewModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        pdfUrl={pdfUrl}
+      />
     </>
   );
 }
