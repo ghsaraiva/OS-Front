@@ -41,31 +41,31 @@ layer(base);
   --color-white: #ffffff;
   --color-black: #101828;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3549db;
-  --color-brand-700: #2c39b3;
-  --color-brand-800: #283191;
-  --color-brand-900: #252d75;
-  --color-brand-950: #161a45;
+  --color-brand-25:  #fffef5;
+  --color-brand-50:  #fffde7;
+  --color-brand-100: #fff9c4;
+  --color-brand-200: #fff176;
+  --color-brand-300: #fde947;
+  --color-brand-400: #fde523;
+  --color-brand-500: #fcde09;
+  --color-brand-600: #c9ae00;
+  --color-brand-700: #9a8500;
+  --color-brand-800: #6b5c00;
+  --color-brand-900: #3d3400;
+  --color-brand-950: #1e1900;
 
-  --color-gray-25: #fcfcfd;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f2f4f7;
-  --color-gray-200: #eaecf0;
-  --color-gray-300: #d0d5dd;
-  --color-gray-400: #98a2b3;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-800: #1d2939;
-  --color-gray-900: #101828;
-  --color-gray-950: #0c111d;
+  --color-gray-25: #ffffff;
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
 
   --color-success-25: #f6fef9;
   --color-success-50: #ecfdf3;
@@ -120,7 +120,7 @@ layer(base);
   --shadow-theme-xl: 0px 20px 24px -4px rgba(16, 24, 40, 0.08),
     0px 8px 8px -4px rgba(16, 24, 40, 0.03);
   --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
-  --shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(252, 222, 9, 0.30);
   --shadow-slider-navigation: 0px 1px 2px 0px rgba(16, 24, 40, 0.1),
     0px 1px 3px 0px rgba(16, 24, 40, 0.1);
   --shadow-tooltip: 0px 4px 6px -2px rgba(16, 24, 40, 0.05),
@@ -175,6 +175,32 @@ layer(base);
   }
 }
 
+/* =====================================================
+   Brand color — overrides por modo de tema
+   - Light mode: dourado escuro (legível em fundo branco)
+   - Dark mode:  amarelo brilhante (destaca em fundo escuro)
+   ===================================================== */
+
+/* Light mode — amarelo dourado forte */
+:root:not(.dark) {
+  --color-brand-300: #f5d640;
+  --color-brand-400: #edca00;
+  --color-brand-500: #e6b800;
+  --color-brand-600: #c49800;
+  --color-brand-700: #9a7800;
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(230, 184, 0, 0.30);
+}
+
+/* Dark mode — amarelo brilhante original */
+html.dark {
+  --color-brand-300: #fde947;
+  --color-brand-400: #fde523;
+  --color-brand-500: #fcde09;
+  --color-brand-600: #c9ae00;
+  --color-brand-700: #9a8500;
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(252, 222, 9, 0.30);
+}
+
 @utility menu-item {
   @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
 }
@@ -222,7 +248,7 @@ layer(base);
 }
 
 @utility menu-dropdown-badge-active {
-  @apply bg-brand-500 text-white;
+  @apply bg-brand-500 text-gray-900;
 }
 
 @utility menu-dropdown-badge-inactive {
@@ -234,7 +260,7 @@ layer(base);
 }
 
 @utility scroll-top-btn {
-  @apply fixed bottom-8 right-8 z-999 flex items-center justify-center rounded-full bg-brand-500 text-white shadow-theme-lg size-12 hover:bg-brand-600;
+  @apply fixed bottom-8 right-8 z-999 flex items-center justify-center rounded-full bg-brand-500 text-gray-900 shadow-theme-lg size-12 hover:bg-brand-600;
 }
 
 @utility table-cell-header {
