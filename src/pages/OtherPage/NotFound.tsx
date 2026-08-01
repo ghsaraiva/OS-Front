@@ -37,7 +37,7 @@ export default function NotFound() {
         
         {/* Footer */}
         <p className="absolute text-xs text-center text-gray-400 -translate-x-1/2 bottom-6 left-1/2 dark:text-gray-500">
-          &copy; {new Date().getFullYear()} - Guilherme Orçamentos Solar
+          &copy; {new Date().getFullYear()} - Sofia Engenharia Elétrica. Todos os direitos reservados.
         </p>
       </div>
     </>

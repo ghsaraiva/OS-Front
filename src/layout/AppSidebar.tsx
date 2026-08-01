@@ -236,11 +236,12 @@ const AppSidebar: React.FC = () => {
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
         ${
-          isExpanded || isMobileOpen
-            ? "w-[290px]"
-            : isHovered
-              ? "w-[290px]"
-              : "w-[90px]"
+          isExpanded || isHovered ? "lg:w-[290px]" : "lg:w-[90px]"
+        }
+        ${
+          isMobileOpen
+            ? "w-[290px] translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
         }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -253,19 +254,29 @@ const AppSidebar: React.FC = () => {
         }`}
       >
         <Link to="/">
-          <div className="flex items-center gap-2 ">
-            {" "}
-            <img
-              src={`${import.meta.env.BASE_URL}images/logo.png`}
-              alt="Logo"
-              className={`${
-                isExpanded || isHovered || isMobileOpen ? "w-10" : "w-5"
-              }`}
-            />
-            {(isExpanded || isHovered || isMobileOpen) && (
-              <span className="hidden sm:block text-lg font-semibold text-gray-800 dark:text-white">
-                Guilherme - Orçamentos
-              </span>
+          <div className="flex items-center">
+            {(isExpanded || isHovered || isMobileOpen) ? (
+              <>
+                {/* Logo horizontal — light mode */}
+                <img
+                  src={`${import.meta.env.BASE_URL}images/logo_horizontal_lightmode.png`}
+                  alt="Logo"
+                  className="h-10 w-auto dark:hidden"
+                />
+                {/* Logo horizontal — dark mode */}
+                <img
+                  src={`${import.meta.env.BASE_URL}images/logo_horizontal_darkmode.png`}
+                  alt="Logo"
+                  className="h-10 w-auto hidden dark:block"
+                />
+              </>
+            ) : (
+              /* Logo cortada — estado recolhido */
+              <img
+                src={`${import.meta.env.BASE_URL}images/logo_cortada.png`}
+                alt="Logo"
+                className="h-10 w-auto"
+              />
             )}
           </div>
         </Link>

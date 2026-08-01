@@ -219,7 +219,7 @@ export default function BudgetDetails() {
             <ArrowLeft className="size-4" />
             Voltar para Listagem
           </Link>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {isAdmin && orcamento && (
               <Link
                 to={`/orcamentos/gerenciamento?id=${orcamento.id}`}
@@ -232,14 +232,15 @@ export default function BudgetDetails() {
             <button
               onClick={handleGeneratePDF}
               disabled={isGeneratingPdf}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 shadow-theme-xs transition-colors disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-brand-600 shadow-theme-xs transition-colors disabled:opacity-70"
             >
               {isGeneratingPdf ? (
-                <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="size-4 animate-spin rounded-full border-2 border-gray-900 border-t-transparent" />
               ) : (
                 <Printer className="size-4" />
               )}
-              {isGeneratingPdf ? "Gerando..." : "Gerar Orçamento / Imprimir PDF"}
+              <span className="sm:hidden">{isGeneratingPdf ? "Gerando..." : "Imprimir PDF"}</span>
+              <span className="hidden sm:inline">{isGeneratingPdf ? "Gerando..." : "Gerar Orçamento / Imprimir PDF"}</span>
             </button>
           </div>
         </div>
@@ -664,15 +665,7 @@ export default function BudgetDetails() {
                     <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                       <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
                         <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                          Kit Fornecedor (Bruto)
-                        </td>
-                        <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
-                          {formatCurrency(orcamento.valor_kit)}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
-                        <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                          Kit Licenciado ({orcamento.porcentagem_kit}%)
+                          Kit Licenciado
                         </td>
                         <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
                           {formatCurrency(orcamento.valor_kit_final)}
@@ -756,7 +749,7 @@ export default function BudgetDetails() {
               {/* Preço de Venda Final */}
               <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500 text-white shadow-lg shadow-brand-500/20">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500 text-gray-900 shadow-lg shadow-brand-500/20">
                     <DollarSign className="size-6" />
                   </div>
                   <div>
@@ -786,7 +779,7 @@ export default function BudgetDetails() {
                         <button
                           onClick={handleSavePrice}
                           disabled={isSavingPrice}
-                          className="p-1.5 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                          className="p-1.5 bg-brand-500 text-gray-900 rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
                           title="Salvar"
                         >
                           <Check className="size-5" />
