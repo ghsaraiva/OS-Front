@@ -79,7 +79,7 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
       <div className="inline-flex rounded-lg shadow-sm">
         <Link
           to={`/orcamentos/detalhes/${budgetId}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-gray-900 bg-brand-50 hover:bg-brand-100 rounded-l-lg transition-colors border border-brand-200/50 dark:bg-brand-500/10 dark:text-gray-900 dark:border-brand-500/20"
+          className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-gray-900 bg-brand-500 hover:bg-brand-600 rounded-l-lg shadow-theme-xs transition-colors"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -91,7 +91,7 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
           ref={buttonRef}
           type="button"
           onClick={toggleDropdown}
-          className="inline-flex items-center px-1.5 py-1 text-xs font-semibold text-gray-900 bg-brand-50 hover:bg-brand-100 rounded-r-lg transition-colors border-y border-r border-brand-200/50 dark:bg-brand-500/10 dark:text-gray-900 dark:border-brand-500/20 border-l border-l-brand-200/30 dark:border-l-brand-500/10"
+          className="inline-flex items-center px-1.5 py-1 text-xs font-semibold text-gray-900 bg-brand-500 hover:bg-brand-600 rounded-r-lg shadow-theme-xs border-l border-l-gray-900/10 transition-colors"
           title="Opções de impressão"
         >
           <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -103,17 +103,17 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
       {isOpen && createPortal(
         <div 
           style={dropdownStyles}
-          className="z-[999999] bg-brand-50 border border-brand-200/50 rounded-lg shadow-theme-sm dark:bg-brand-500/10 dark:border-brand-500/20 overflow-hidden"
+          className="z-[999999] bg-white border border-gray-200 rounded-lg shadow-theme-md dark:bg-gray-900 dark:border-gray-800 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             type="button"
             disabled={isGeneratingPdf}
             onClick={handleGeneratePdf}
-            className="flex items-center w-full gap-2 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-brand-100 dark:text-gray-900 dark:hover:bg-brand-500/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="flex items-center w-full gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-brand-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-white transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {isGeneratingPdf ? (
-              <div className="size-4 animate-spin rounded-full border border-gray-900 dark:border-gray-900 border-t-transparent" />
+              <div className="size-4 animate-spin rounded-full border border-gray-900 dark:border-white border-t-transparent" />
             ) : (
               <Printer className="size-4" />
             )}
