@@ -2470,9 +2470,9 @@ export default function BudgetManagement() {
                   setIsGeneratingPdf(false);
                 }
               }}
-              className="flex-1 px-4 py-2.5 text-sm font-semibold text-center text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-theme-sm disabled:opacity-70 flex justify-center items-center gap-2"
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-center text-gray-900 bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-theme-sm disabled:opacity-70 flex justify-center items-center gap-2"
             >
-              {isGeneratingPdf && <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+              {isGeneratingPdf && <div className="size-4 animate-spin rounded-full border-2 border-gray-900 border-t-transparent" />}
               {isGeneratingPdf ? "Gerando..." : "Gerar Orçamento / Imprimir PDF"}
             </button>
           </div>

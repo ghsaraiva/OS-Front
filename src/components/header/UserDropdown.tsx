@@ -27,13 +27,13 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 flex items-center justify-center rounded-full h-11 w-11 bg-gray-100 dark:bg-gray-800 text-gray-500">
+        <span className="sm:mr-3 flex items-center justify-center rounded-full h-11 w-11 bg-gray-100 dark:bg-gray-800 text-gray-500">
           <UserCircleIcon className="size-6" />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{user?.name || "Usuário"}</span>
+        <span className="hidden sm:block mr-1 font-medium text-theme-sm">{user?.name || "Usuário"}</span>
         <svg
-          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
+          className={`hidden sm:block stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}
           width="18"
@@ -55,7 +55,7 @@ export default function UserDropdown() {
       <Dropdown
         isOpen={isOpen}
         onClose={closeDropdown}
-        className="absolute right-0 mt-[17px] flex w-[260px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900"
+        className="fixed top-16 right-2 flex w-[260px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 sm:absolute sm:top-auto sm:right-0 sm:mt-[17px]"
       >
         <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-800">
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">

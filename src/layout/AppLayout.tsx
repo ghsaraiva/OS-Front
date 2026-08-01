@@ -8,7 +8,7 @@ import { useAppStore } from "../store/useAppStore";
 import { useAuth } from "../context/AuthContext";
 
 const LayoutContent: React.FC = () => {
-  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  const { isExpanded, isHovered } = useSidebar();
   const { user } = useAuth();
   const initApp = useAppStore((state) => state.initApp);
 
@@ -27,7 +27,7 @@ const LayoutContent: React.FC = () => {
       <div
         className={`flex-1 transition-all duration-300 ease-in-out ${
           isExpanded || isHovered ? "lg:ml-[290px]" : "lg:ml-[90px]"
-        } ${isMobileOpen ? "ml-0" : ""}`}
+        }`}
       >
         <AppHeader />
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
