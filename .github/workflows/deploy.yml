@@ -41,8 +41,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_POCKETBASE_URL: https://150-136-18-45.sslip.io
-          VITE_API_URL: https://150-136-18-45.sslip.io/v1/api/calculos
+          VITE_POCKETBASE_URL: ${{ secrets.VITE_POCKETBASE_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

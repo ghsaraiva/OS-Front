@@ -69,7 +69,7 @@ export interface Orcamento {
   garantia_instalacao?: string;
   garantia_estrutura?: string;
   monitoramento_inversor?: string;
-  material_estrutura?: string;
+  material_structure?: string;
 
   // Características da Estrutura
   caracteristica_estrutura_1?: string;

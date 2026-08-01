@@ -4,6 +4,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { Link } from "react-router";
 import Badge from "../ui/badge/Badge";
 import { Skeleton } from "../ui/Skeleton";
+import BudgetActionDropdown from "../budgets/BudgetActionDropdown";
 
 export default function RecentOrders() {
   const { user, isAdmin } = useAuth();
@@ -12,7 +13,9 @@ export default function RecentOrders() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleOutsideClick = () => setActiveMenuId(null);
+    const handleOutsideClick = () => {
+      setActiveMenuId(null);
+    };
     document.addEventListener("click", handleOutsideClick);
     return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
@@ -168,27 +171,7 @@ export default function RecentOrders() {
                       </td>
                       <td className="px-5 py-4 text-theme-sm">
                         {isRefined ? (
-                          <div className="inline-flex rounded-lg shadow-sm">
-                            <Link
-                              to={`/budgets/details/${o.id}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-l-lg transition-colors border border-brand-200/50 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20"
-                            >
-                              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              Visualizar
-                            </Link>
-                            <button
-                              type="button"
-                              className="inline-flex items-center px-1.5 py-1 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-r-lg transition-colors border-y border-r border-brand-200/50 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20 border-l border-l-brand-200/30 dark:border-l-brand-500/10"
-                              title="Mais opções (Imprimir PDF em breve)"
-                            >
-                              <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                          </div>
+                          <BudgetActionDropdown budgetId={o.id} clientName={o.nome_cliente || ""} phone={o.telefone_cliente as string} email={o.email_cliente as string} />
                         ) : (
                           <div className="inline-flex rounded-lg opacity-60">
                             <button
