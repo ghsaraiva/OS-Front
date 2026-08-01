@@ -120,7 +120,7 @@ export default function BudgetDetails() {
     addToast("info", "Gerando PDF", "Sua proposta está sendo montada...");
     
     try {
-      const response = await api.post(`/calculos/gerar-pdf/${orcamento.id}`);
+      const response = await api.post(`/gerar-pdf/${orcamento.id}`);
       if (response.data?.pdfUrl) {
         setPdfUrl(response.data.pdfUrl);
         setIsPdfModalOpen(true);
@@ -239,7 +239,7 @@ export default function BudgetDetails() {
               ) : (
                 <Printer className="size-4" />
               )}
-              {isGeneratingPdf ? "Gerando..." : "Imprimir / PDF"}
+              {isGeneratingPdf ? "Gerando..." : "Gerar Orçamento / Imprimir PDF"}
             </button>
           </div>
         </div>
@@ -296,6 +296,30 @@ export default function BudgetDetails() {
                     {orcamento.nome_cliente}
                   </p>
                 </div>
+                {(orcamento.telefone_cliente || orcamento.email_cliente) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {orcamento.telefone_cliente && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase">
+                          Telefone
+                        </p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">
+                          {orcamento.telefone_cliente}
+                        </p>
+                      </div>
+                    )}
+                    {orcamento.email_cliente && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase">
+                          E-mail
+                        </p>
+                        <p className="text-sm text-gray-800 dark:text-white/90 truncate" title={orcamento.email_cliente}>
+                          {orcamento.email_cliente}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs font-medium text-gray-400 uppercase">
@@ -428,7 +452,7 @@ export default function BudgetDetails() {
                     Material Estrutura
                   </p>
                   <p className="text-sm text-gray-800 dark:text-white/90">
-                    {orcamento.material_estrutura || "Alumínio/Aço Galvanizado"}
+                    {orcamento.material_structure || "Alumínio/Aço Galvanizado"}
                   </p>
                 </div>
               </div>
@@ -814,6 +838,9 @@ export default function BudgetDetails() {
         isOpen={isPdfModalOpen}
         onClose={() => setIsPdfModalOpen(false)}
         pdfUrl={pdfUrl}
+        phone={orcamento?.telefone_cliente}
+        email={orcamento?.email_cliente}
+        clientName={orcamento?.nome_cliente}
       />
     </>
   );

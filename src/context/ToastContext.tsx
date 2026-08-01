@@ -54,14 +54,14 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               ${toast.type === 'success' ? 'border-success-500 bg-success-50 dark:bg-success-500/15' : ''}
               ${toast.type === 'error' ? 'border-error-500 bg-error-50 dark:bg-error-500/15' : ''}
               ${toast.type === 'warning' ? 'border-warning-500 bg-warning-50 dark:bg-warning-500/15' : ''}
-              ${toast.type === 'info' ? 'border-blue-light-500 bg-blue-light-50 dark:bg-blue-light-500/15' : ''}
+              ${toast.type === 'info' ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/15' : ''}
             `}
           >
             <div className={`mt-0.5 
               ${toast.type === 'success' ? 'text-success-500' : ''}
               ${toast.type === 'error' ? 'text-error-500' : ''}
               ${toast.type === 'warning' ? 'text-warning-500' : ''}
-              ${toast.type === 'info' ? 'text-blue-light-500' : ''}
+              ${toast.type === 'info' ? 'text-brand-500' : ''}
             `}>
               {toast.type === 'success' && <CheckCircle size={20} />}
               {toast.type === 'error' && <XCircle size={20} />}

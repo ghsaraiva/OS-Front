@@ -114,6 +114,8 @@ export default function BudgetManagement() {
   } = useForm({
     defaultValues: {
       nome_cliente: "",
+      telefone_cliente: "",
+      email_cliente: "",
       estado: "",
       cidade: "",
       id_cidade: "",
@@ -168,7 +170,7 @@ export default function BudgetManagement() {
       garantia_instalacao: "1 ano",
       garantia_estrutura: "10 anos",
       monitoramento_inversor: "Wi-Fi",
-      material_estrutura: "Estrutura de Alumínio ou Aço Galvanizado",
+      material_structure: "Estrutura de Alumínio ou Aço Galvanizado",
 
       // Seção: Características da Estrutura
       caracteristica_estrutura_1: "Segurança na Instalação",
@@ -232,6 +234,8 @@ export default function BudgetManagement() {
   const watchedPadrao = watch("padrao");
   const watchedPrecoVenda = watch("preco_final_venda");
   const watchedNomeCliente = watch("nome_cliente");
+  const watchedTelefoneCliente = watch("telefone_cliente");
+  const watchedEmailCliente = watch("email_cliente");
   const watchedEstado = watch("estado");
   const watchedCidade = watch("cidade");
   const watchedSistemaKwp = watch("sistema_kwp");
@@ -789,6 +793,8 @@ export default function BudgetManagement() {
 
       reset({
         nome_cliente: orcamento.nome_cliente || "",
+        telefone_cliente: orcamento.telefone_cliente || "",
+        email_cliente: orcamento.email_cliente || "",
         estado: orcamento.estado || "",
         id_cidade: idCidade,
         cidade: orcamento.cidade || "",
@@ -873,8 +879,8 @@ export default function BudgetManagement() {
         garantia_instalacao: orcamento.garantia_instalacao || "1 ano",
         garantia_estrutura: orcamento.garantia_estrutura || "10 anos",
         monitoramento_inversor: orcamento.monitoramento_inversor || "Wi-Fi",
-        material_estrutura:
-          orcamento.material_estrutura ||
+        material_structure:
+          orcamento.material_structure ||
           "Estrutura de Alumínio ou Aço Galvanizado",
 
         // Características da Estrutura
@@ -933,9 +939,11 @@ export default function BudgetManagement() {
     if (!selectedOrcamento) return;
     setIsSaving(true);
 
-    const payload = {
+    const payload: Partial<OrcamentoRecord> = {
       orcamentoId: selectedOrcamento.id,
       nome_cliente: data.nome_cliente,
+      telefone_cliente: data.telefone_cliente,
+      email_cliente: data.email_cliente,
       id_cidade: data.id_cidade,
       cidade: data.cidade,
       estado: data.estado,
@@ -969,7 +977,7 @@ export default function BudgetManagement() {
       garantia_instalacao: data.garantia_instalacao,
       garantia_estrutura: data.garantia_estrutura,
       monitoramento_inversor: data.monitoramento_inversor,
-      material_estrutura: data.material_estrutura,
+      material_structure: data.material_structure,
 
       caracteristica_estrutura_1: data.caracteristica_estrutura_1,
       caracteristica_estrutura_2: data.caracteristica_estrutura_2,
@@ -1137,8 +1145,8 @@ export default function BudgetManagement() {
                 }
               >
                 {isSection0Open && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3 animate-slideDown">
-                    <div className="md:col-span-1">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-12 animate-slideDown">
+                    <div className="md:col-span-6">
                       <Label required>Nome do Cliente</Label>
                       <Controller
                         name="nome_cliente"
@@ -1146,7 +1154,27 @@ export default function BudgetManagement() {
                         render={({ field }) => <Input {...field} required />}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
+                      <Label>Telefone (WhatsApp)</Label>
+                      <Controller
+                        name="telefone_cliente"
+                        control={control}
+                        render={({ field }) => (
+                          <Input {...field} placeholder="(11) 99999-9999" />
+                        )}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Label>E-mail</Label>
+                      <Controller
+                        name="email_cliente"
+                        control={control}
+                        render={({ field }) => (
+                          <Input {...field} type="email" placeholder="cliente@email.com" />
+                        )}
+                      />
+                    </div>
+                    <div className="md:col-span-6">
                       <Label required>Cidade</Label>
                       <Controller
                         name="id_cidade"
@@ -1164,7 +1192,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-6">
                       <Label>Estado</Label>
                       <Controller
                         name="estado"
@@ -1187,7 +1215,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div className="md:col-span-3">
+                    <div className="md:col-span-12">
                       <Label>Observação</Label>
                       <Controller
                         name="observacao"
@@ -2257,7 +2285,7 @@ export default function BudgetManagement() {
                     <div className="md:col-span-2">
                       <Label>Material da Estrutura</Label>
                       <Controller
-                        name="material_estrutura"
+                        name="material_structure"
                         control={control}
                         render={({ field }) => <Input {...field} />}
                       />
@@ -2430,7 +2458,7 @@ export default function BudgetManagement() {
                 setIsGeneratingPdf(true);
                 addToast("info", "Gerando PDF", "Sua proposta está sendo montada...");
                 try {
-                  const res = await api.post(`/calculos/gerar-pdf/${savedBudgetId}`);
+                  const res = await api.post(`/gerar-pdf/${savedBudgetId}`);
                   if (res.data?.pdfUrl) {
                     setPdfUrl(res.data.pdfUrl);
                     setIsSuccessModalOpen(false);
@@ -2455,6 +2483,9 @@ export default function BudgetManagement() {
         isOpen={isPdfViewerOpen}
         onClose={() => setIsPdfViewerOpen(false)}
         pdfUrl={pdfUrl}
+        phone={watchedTelefoneCliente}
+        email={watchedEmailCliente}
+        clientName={watchedNomeCliente}
       />
     </>
   );
