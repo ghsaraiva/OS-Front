@@ -28,15 +28,14 @@ const navItems: NavItem[] = [
     name: "Orçamentos",
     icon: <DocsIcon />,
     subItems: [
-      { name: "Novo Orçamento", path: "/budgets/new" },
+      { name: "Novo Orçamento", path: "/orcamentos/novo" },
       {
-        name: "Gerencial",
-        path: "/budgets/management",
-        roles: ["admin"],
+        name: "Gerenciar Orçamento",
+        path: "/orcamentos/gerenciamento",
       },
       {
         name: "Todos os Orçamentos",
-        path: "/budgets/all",
+        path: "/orcamentos/todos",
         roles: ["admin"],
       },
     ],
@@ -45,7 +44,7 @@ const navItems: NavItem[] = [
     name: "Segurança",
     icon: <LockIcon />,
     roles: ["admin"],
-    subItems: [{ name: "Novo Usuário", path: "/security/users" }],
+    subItems: [{ name: "Novo Usuário", path: "/seguranca/usuarios" }],
   },
 ];
 

@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route } from "react-router";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import SignIn from "./pages/AuthPages/SignIn";
 import NotFound from "./pages/OtherPage/NotFound";
 import AppLayout from "./layout/AppLayout";
@@ -19,7 +19,7 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           {/* Auth Layout */}
-          <Route path="/signin" element={<SignIn />} />
+          <Route path="/login" element={<SignIn />} />
 
           {/* Dashboard Layout */}
           <Route
@@ -33,7 +33,7 @@ export default function App() {
 
             {/* Segurança */}
             <Route
-              path="/security/users"
+              path="/seguranca/usuarios"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <Users />
@@ -42,13 +42,13 @@ export default function App() {
             />
 
             {/* Orçamentos */}
-            <Route path="/budgets/new" element={<NewBudget />} />
+            <Route path="/orcamentos/novo" element={<NewBudget />} />
             <Route
-              path="/budgets/details/:id"
+              path="/orcamentos/detalhes/:id"
               element={<BudgetDetails />}
             />
             <Route
-              path="/budgets/all"
+              path="/orcamentos/todos"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <AllBudgets />
@@ -56,7 +56,7 @@ export default function App() {
               }
             />
             <Route
-              path="/budgets/management"
+              path="/orcamentos/gerenciamento"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <BudgetManagement />

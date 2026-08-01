@@ -78,7 +78,7 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
     <>
       <div className="inline-flex rounded-lg shadow-sm">
         <Link
-          to={`/budgets/details/${budgetId}`}
+          to={`/orcamentos/detalhes/${budgetId}`}
           className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-l-lg transition-colors border border-brand-200/50 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500/20"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

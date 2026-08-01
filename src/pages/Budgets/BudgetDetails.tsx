@@ -159,7 +159,7 @@ export default function BudgetDetails() {
           Orçamento não encontrado.
         </p>
         <Link
-          to="/budgets/all"
+          to="/orcamentos/todos"
           className="text-brand-500 hover:underline flex items-center gap-2"
         >
           <ArrowLeft className="size-4" /> Voltar
@@ -185,13 +185,13 @@ export default function BudgetDetails() {
         </p>
         <div className="flex gap-4 mt-2">
           <Link
-            to="/budgets/all"
+            to="/orcamentos/todos"
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="size-4" /> Voltar para Listagem
           </Link>
           <Link
-            to="/budgets/management"
+            to="/orcamentos/gerenciamento"
             className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
           >
             Ir para Refinamento Gerencial
@@ -213,7 +213,7 @@ export default function BudgetDetails() {
         {/* Header de Ações - Escondido na Impressão */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <Link
-            to="/budgets/all"
+            to="/orcamentos/todos"
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="size-4" />
@@ -222,7 +222,7 @@ export default function BudgetDetails() {
           <div className="flex gap-3">
             {isAdmin && orcamento && (
               <Link
-                to={`/budgets/management?id=${orcamento.id}`}
+                to={`/orcamentos/gerenciamento?id=${orcamento.id}`}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-white/[0.05] dark:bg-white/[0.02] dark:text-white/90 dark:hover:bg-white/[0.05]"
               >
                 <TrendingUp className="size-4" />

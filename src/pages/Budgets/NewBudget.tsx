@@ -436,7 +436,7 @@ export default function NewBudget() {
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <Link
-                                    to={`/budgets/management?id=${o.id}`}
+                                    to={`/orcamentos/gerenciamento?id=${o.id}`}
                                     onClick={() => setActiveMenuId(null)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full text-left font-medium"
                                   >
