@@ -8,6 +8,8 @@ export interface Orcamento {
   user_id: string;
   id_cidade: string;
   nome_cliente: string;
+  telefone_cliente?: string;
+  email_cliente?: string;
   estado: string;
   cidade: string;
   observacao: string;

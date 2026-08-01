@@ -928,9 +928,11 @@ export default function BudgetManagement() {
     if (!selectedOrcamento) return;
     setIsSaving(true);
 
-    const payload = {
+    const payload: Record<string, any> = {
       orcamentoId: selectedOrcamento.id,
       nome_cliente: data.nome_cliente,
+      telefone_cliente: data.telefone_cliente,
+      email_cliente: data.email_cliente,
       id_cidade: data.id_cidade,
       cidade: data.cidade,
       estado: data.estado,
