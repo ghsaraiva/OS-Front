@@ -22,6 +22,8 @@ export interface OrcamentoRecord {
   codigo: string;
   user_id: string;
   nome_cliente: string;
+  telefone_cliente?: string;
+  email_cliente?: string;
   estado: string;
   cidade: string;
   id_cidade?: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -15,6 +15,7 @@ import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { ChevronDownIcon, ChevronUpIcon } from "../../icons";
 import api from "../../services/api";
+import { PdfPreviewModal } from "../../components/ui/modal/PdfPreviewModal";
 
 import Select from "../../components/form/Select";
 import AutocompleteCity from "../../components/form/AutocompleteCity";
@@ -71,8 +72,12 @@ export default function BudgetManagement() {
     useState(true);
   const [isSectionComposicaoOpen, setIsSectionComposicaoOpen] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [savedBudgetId, setSavedBudgetId] = useState<string | null>(null);
+
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
   const [customMarginOption, setCustomMarginOption] = useState<{
     value: string;
     label: string;
@@ -109,6 +114,8 @@ export default function BudgetManagement() {
   } = useForm({
     defaultValues: {
       nome_cliente: "",
+      telefone_cliente: "",
+      email_cliente: "",
       estado: "",
       cidade: "",
       id_cidade: "",
@@ -163,7 +170,7 @@ export default function BudgetManagement() {
       garantia_instalacao: "1 ano",
       garantia_estrutura: "10 anos",
       monitoramento_inversor: "Wi-Fi",
-      material_estrutura: "Estrutura de Alumínio ou Aço Galvanizado",
+      material_structure: "Estrutura de Alumínio ou Aço Galvanizado",
 
       // Seção: Características da Estrutura
       caracteristica_estrutura_1: "Segurança na Instalação",
@@ -227,6 +234,8 @@ export default function BudgetManagement() {
   const watchedPadrao = watch("padrao");
   const watchedPrecoVenda = watch("preco_final_venda");
   const watchedNomeCliente = watch("nome_cliente");
+  const watchedTelefoneCliente = watch("telefone_cliente");
+  const watchedEmailCliente = watch("email_cliente");
   const watchedEstado = watch("estado");
   const watchedCidade = watch("cidade");
   const watchedSistemaKwp = watch("sistema_kwp");
@@ -784,6 +793,8 @@ export default function BudgetManagement() {
 
       reset({
         nome_cliente: orcamento.nome_cliente || "",
+        telefone_cliente: orcamento.telefone_cliente || "",
+        email_cliente: orcamento.email_cliente || "",
         estado: orcamento.estado || "",
         id_cidade: idCidade,
         cidade: orcamento.cidade || "",
@@ -868,8 +879,8 @@ export default function BudgetManagement() {
         garantia_instalacao: orcamento.garantia_instalacao || "1 ano",
         garantia_estrutura: orcamento.garantia_estrutura || "10 anos",
         monitoramento_inversor: orcamento.monitoramento_inversor || "Wi-Fi",
-        material_estrutura:
-          orcamento.material_estrutura ||
+        material_structure:
+          orcamento.material_structure ||
           "Estrutura de Alumínio ou Aço Galvanizado",
 
         // Características da Estrutura
@@ -928,9 +939,11 @@ export default function BudgetManagement() {
     if (!selectedOrcamento) return;
     setIsSaving(true);
 
-    const payload = {
+    const payload: Partial<OrcamentoRecord> = {
       orcamentoId: selectedOrcamento.id,
       nome_cliente: data.nome_cliente,
+      telefone_cliente: data.telefone_cliente,
+      email_cliente: data.email_cliente,
       id_cidade: data.id_cidade,
       cidade: data.cidade,
       estado: data.estado,
@@ -964,7 +977,7 @@ export default function BudgetManagement() {
       garantia_instalacao: data.garantia_instalacao,
       garantia_estrutura: data.garantia_estrutura,
       monitoramento_inversor: data.monitoramento_inversor,
-      material_estrutura: data.material_estrutura,
+      material_structure: data.material_structure,
 
       caracteristica_estrutura_1: data.caracteristica_estrutura_1,
       caracteristica_estrutura_2: data.caracteristica_estrutura_2,
@@ -981,8 +994,8 @@ export default function BudgetManagement() {
           "Sucesso",
           "Orçamento gerencial salvo com sucesso!",
         );
-        setSavedBudgetId(selectedOrcamento.id);
-        setIsPdfModalOpen(true);
+        setSavedBudgetId(response.data.data.id);
+        setIsSuccessModalOpen(true);
         setSelectedOrcamento(null);
         fetchBudgets();
       }
@@ -1132,8 +1145,8 @@ export default function BudgetManagement() {
                 }
               >
                 {isSection0Open && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3 animate-slideDown">
-                    <div className="md:col-span-1">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-12 animate-slideDown">
+                    <div className="md:col-span-6">
                       <Label required>Nome do Cliente</Label>
                       <Controller
                         name="nome_cliente"
@@ -1141,7 +1154,27 @@ export default function BudgetManagement() {
                         render={({ field }) => <Input {...field} required />}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
+                      <Label>Telefone (WhatsApp)</Label>
+                      <Controller
+                        name="telefone_cliente"
+                        control={control}
+                        render={({ field }) => (
+                          <Input {...field} placeholder="(11) 99999-9999" />
+                        )}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Label>E-mail</Label>
+                      <Controller
+                        name="email_cliente"
+                        control={control}
+                        render={({ field }) => (
+                          <Input {...field} type="email" placeholder="cliente@email.com" />
+                        )}
+                      />
+                    </div>
+                    <div className="md:col-span-6">
                       <Label required>Cidade</Label>
                       <Controller
                         name="id_cidade"
@@ -1159,7 +1192,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-6">
                       <Label>Estado</Label>
                       <Controller
                         name="estado"
@@ -1182,7 +1215,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div className="md:col-span-3">
+                    <div className="md:col-span-12">
                       <Label>Observação</Label>
                       <Controller
                         name="observacao"
@@ -2252,7 +2285,7 @@ export default function BudgetManagement() {
                     <div className="md:col-span-2">
                       <Label>Material da Estrutura</Label>
                       <Controller
-                        name="material_estrutura"
+                        name="material_structure"
                         control={control}
                         render={({ field }) => <Input {...field} />}
                       />
@@ -2383,8 +2416,8 @@ export default function BudgetManagement() {
       </div>
 
       <Modal
-        isOpen={isPdfModalOpen}
-        onClose={() => setIsPdfModalOpen(false)}
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
         className="max-w-[450px] p-6 text-center sm:p-8"
         showCloseButton={false}
       >
@@ -2413,21 +2446,47 @@ export default function BudgetManagement() {
           </p>
           <div className="flex w-full flex-col gap-3 sm:flex-row">
             <button
-              onClick={() => setIsPdfModalOpen(false)}
+              onClick={() => setIsSuccessModalOpen(false)}
               className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors dark:bg-white/[0.05] dark:text-gray-300 dark:hover:bg-white/[0.1]"
             >
               Agora não
             </button>
-            <Link
-              to={`/budgets/details/${savedBudgetId}`}
-              onClick={() => setIsPdfModalOpen(false)}
-              className="flex-1 px-4 py-2.5 text-sm font-semibold text-center text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-theme-sm"
+            <button
+              disabled={isGeneratingPdf}
+              onClick={async () => {
+                if (!savedBudgetId) return;
+                setIsGeneratingPdf(true);
+                addToast("info", "Gerando PDF", "Sua proposta está sendo montada...");
+                try {
+                  const res = await api.post(`/gerar-pdf/${savedBudgetId}`);
+                  if (res.data?.pdfUrl) {
+                    setPdfUrl(res.data.pdfUrl);
+                    setIsSuccessModalOpen(false);
+                    setIsPdfViewerOpen(true);
+                  }
+                } catch (err) {
+                  addToast("error", "Erro ao Gerar", "Não foi possível gerar a proposta.");
+                } finally {
+                  setIsGeneratingPdf(false);
+                }
+              }}
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-center text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors shadow-theme-sm disabled:opacity-70 flex justify-center items-center gap-2"
             >
-              Sim, visualizar
-            </Link>
+              {isGeneratingPdf && <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+              {isGeneratingPdf ? "Gerando..." : "Gerar Orçamento / Imprimir PDF"}
+            </button>
           </div>
         </div>
       </Modal>
+
+      <PdfPreviewModal
+        isOpen={isPdfViewerOpen}
+        onClose={() => setIsPdfViewerOpen(false)}
+        pdfUrl={pdfUrl}
+        phone={watchedTelefoneCliente}
+        email={watchedEmailCliente}
+        clientName={watchedNomeCliente}
+      />
     </>
   );
 }
