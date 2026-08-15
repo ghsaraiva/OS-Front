@@ -6,8 +6,8 @@ export default function NotFound() {
   return (
     <>
       <PageMeta
-        title="Página Não Encontrada | Orçamentos Solar"
-        description="A página solicitada não foi encontrada no sistema de orçamentos."
+        title="Página Não Encontrada | Sofia Engenharia"
+        description="A página solicitada não foi encontrada no sistema da Sofia Engenharia."
       />
       <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1 bg-white dark:bg-gray-900">
         <GridShape />

@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import Badge from "../ui/badge/Badge";
 import { Skeleton } from "../ui/Skeleton";
 import BudgetActionDropdown from "../budgets/BudgetActionDropdown";
+import UserAvatar from "../common/UserAvatar";
 
 export default function RecentOrders() {
   const { user, isAdmin } = useAuth();
@@ -156,7 +157,10 @@ export default function RecentOrders() {
                         {o.nome_cliente}
                       </td>
                       <td className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
-                        {o.expand?.user_id?.name || "---"}
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar user={o.expand?.user_id} size="sm" />
+                          <span>{o.expand?.user_id?.name || "---"}</span>
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatLocation(o.cidade, o.estado)}

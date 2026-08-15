@@ -32,7 +32,7 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
         top: `${rect.bottom + 4}px`,
         left: `${rect.left}px`,
         width: 'max-content',
-        minWidth: '160px' // Slightly wider to ensure it fits "Imprimir" text nicely
+        minWidth: '160px' 
       });
     }
     setIsOpen(!isOpen);
@@ -110,12 +110,12 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
             type="button"
             disabled={isGeneratingPdf}
             onClick={handleGeneratePdf}
-            className="flex items-center w-full gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-brand-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-white transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="flex items-center w-full gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/100 dark:hover:text-white transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {isGeneratingPdf ? (
               <div className="size-4 animate-spin rounded-full border border-gray-900 dark:border-white border-t-transparent" />
             ) : (
-              <Printer className="size-4" />
+              <Printer className="size-4 text-brand-600" />
             )}
             {isGeneratingPdf ? "Gerando..." : "Imprimir"}
           </button>

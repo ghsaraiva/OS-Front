@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { FileText, Download, MessageCircle, Mail, X } from "lucide-react";
 import Button from "../button/Button";
+import api from "../../../services/api";
+import { useToast } from "../../../context/ToastContext";
 
 export function PdfPreviewModal({
   isOpen,
@@ -16,6 +19,9 @@ export function PdfPreviewModal({
   email?: string;
   clientName?: string;
 }) {
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const { addToast } = useToast();
+
   if (!isOpen) return null;
 
   const handleWhatsApp = () => {
@@ -24,10 +30,31 @@ export function PdfPreviewModal({
     window.open(url, "_blank");
   };
 
-  const handleEmail = () => {
-    const subject = encodeURIComponent("Sua Proposta");
-    const body = encodeURIComponent(`Olá!\n\nSegue o link para visualizar sua proposta:\n\n${pdfUrl}`);
-    window.open(`mailto:${email || ''}?subject=${subject}&body=${body}`, "_blank");
+  const handleEmail = async () => {
+    let targetEmail = email;
+
+    if (!targetEmail) {
+      const inputEmail = window.prompt("Digite o e-mail do cliente para enviar a proposta:");
+      if (!inputEmail) return;
+      targetEmail = inputEmail;
+    }
+
+    setSendingEmail(true);
+    try {
+      await api.post('/enviar-email-proposta', {
+        email: targetEmail,
+        clientName: clientName || 'Cliente',
+        budgetTitle: `Proposta de Energia Solar - ${clientName || 'Cliente'}`,
+        pdfUrl,
+      });
+
+      addToast('success', 'E-mail Enviado!', `A proposta foi enviada para ${targetEmail} com sucesso.`);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Não foi possível enviar o e-mail da proposta.';
+      addToast('error', 'Erro ao enviar e-mail', msg);
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const getFormattedFileName = (name?: string) => {
@@ -80,8 +107,15 @@ export function PdfPreviewModal({
             <Button size="sm" className="bg-[#25D366] hover:bg-[#1ebd57] text-white ring-0" startIcon={<MessageCircle className="w-4 h-4" />} onClick={handleWhatsApp}>
               WhatsApp
             </Button>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white ring-0" startIcon={<Mail className="w-4 h-4" />} onClick={handleEmail}>
-              E-mail
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white ring-0"
+              startIcon={<Mail className="w-4 h-4" />}
+              onClick={handleEmail}
+              loading={sendingEmail}
+              disabled={sendingEmail}
+            >
+              {sendingEmail ? "Enviando..." : "E-mail"}
             </Button>
             <button
               onClick={onClose}

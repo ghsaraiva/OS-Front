@@ -6,8 +6,8 @@ export default function SignIn() {
   return (
     <>
       <PageMeta
-        title="Login | Sistema de Orçamentos"
-        description="Página de login do sistema de orçamentos de energia solar."
+        title="Login | Sofia Engenharia"
+        description="Acesse o sistema de orçamentos de energia solar da Sofia Engenharia."
       />
       <AuthLayout>
         <SignInForm />

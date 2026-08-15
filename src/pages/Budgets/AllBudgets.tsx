@@ -8,6 +8,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { useAuth } from "../../context/AuthContext";
 import { format } from "date-fns";
 import { Skeleton } from "../../components/ui/Skeleton";
+import UserAvatar from "../../components/common/UserAvatar";
 import BudgetActionDropdown from "../../components/budgets/BudgetActionDropdown";
 
 export default function AllBudgets() {
@@ -59,10 +60,10 @@ export default function AllBudgets() {
   return (
     <>
       <PageMeta
-        title="Todos os Orçamentos | Solar Admin"
+        title="Todos os Orçamentos | Sofia Engenharia"
         description="Listagem geral de orçamentos do sistema."
       />
-      <PageBreadcrumb pageTitle="Orçamentos - Todos" />
+      <PageBreadcrumb pageTitle="Todos os Orçamentos" />
 
       <div className="space-y-6">
         <ComponentCard title="Todos os Orçamentos Cadastrados">
@@ -143,7 +144,10 @@ export default function AllBudgets() {
                           {o.nome_cliente}
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                          {o.expand?.user_id?.name || "---"}
+                          <div className="flex items-center gap-2.5">
+                            <UserAvatar user={o.expand?.user_id} size="sm" />
+                            <span>{o.expand?.user_id?.name || "---"}</span>
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                           {formatLocation(o.cidade, o.estado)}

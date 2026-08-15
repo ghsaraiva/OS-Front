@@ -5,6 +5,7 @@ interface AuthContextType {
   user: UserRecord | null;
   isValid: boolean;
   isAdmin: boolean;
+  primeiroAcesso: boolean;
   loading: boolean;
   signOut: () => void;
 }
@@ -34,9 +35,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAdmin = user?.tipo_acesso === 'admin';
+  const primeiroAcesso = user?.primeiro_acesso === true;
 
   return (
-    <AuthContext.Provider value={{ user, isValid, isAdmin, loading, signOut }}>
+    <AuthContext.Provider value={{ user, isValid, isAdmin, primeiroAcesso, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
