@@ -20,6 +20,7 @@ import { PdfPreviewModal } from "../../components/ui/modal/PdfPreviewModal";
 import Select from "../../components/form/Select";
 import AutocompleteCity from "../../components/form/AutocompleteCity";
 import { Modal } from "../../components/ui/modal";
+import UserAvatar from "../../components/common/UserAvatar";
 
 export default function BudgetManagement() {
   const { addToast } = useToast();
@@ -1019,8 +1020,8 @@ export default function BudgetManagement() {
 
   return (
     <>
-      <PageMeta title="Orçamento Gerencial | Solar Admin" />
-      <PageBreadcrumb pageTitle="Orçamentos - Gerencial" />
+      <PageMeta title="Gerenciar Orçamento | Sofia Engenharia" />
+      <PageBreadcrumb pageTitle="Gerenciar Orçamento" />
 
       <div className="space-y-6">
         <ComponentCard title="Histórico Global de Solicitações">
@@ -1090,7 +1091,10 @@ export default function BudgetManagement() {
                           {o.nome_cliente}
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                          {o.expand?.user_id?.name || "---"}
+                          <div className="flex items-center gap-2.5">
+                            <UserAvatar user={o.expand?.user_id} size="sm" />
+                            <span>{o.expand?.user_id?.name || "---"}</span>
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                           {formatLocation(o.cidade, o.estado)}
@@ -1223,7 +1227,7 @@ export default function BudgetManagement() {
                         render={({ field }) => <Input {...field} />}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
                       <Label required>Estrutura</Label>
                       <Controller
                         name="estrutura"
@@ -1242,7 +1246,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
                       <Label required>Padrão de Entrada</Label>
                       <Controller
                         name="padrao"
@@ -1259,7 +1263,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
                       <Label required>Consumo Mês (R$)</Label>
                       <Controller
                         name="consumo_mes"
@@ -1275,7 +1279,7 @@ export default function BudgetManagement() {
                         )}
                       />
                     </div>
-                    <div>
+                    <div className="md:col-span-3">
                       <Label required>Tarifa (R$)</Label>
                       <Controller
                         name="valor_tarifa"

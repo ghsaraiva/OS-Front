@@ -12,6 +12,7 @@ export interface UserRecord {
   email: string;
   name: string;
   tipo_acesso: 'admin' | 'vendedor';
+  primeiro_acesso: boolean;
   avatar?: string;
   created: string;
   updated: string;

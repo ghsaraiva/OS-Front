@@ -11,13 +11,26 @@ import Badge from '../../components/ui/badge/Badge';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuth } from '../../context/AuthContext';
 import { useUsers } from '../../hooks/useUsers';
+import UserAvatar from '../../components/common/UserAvatar';
+import { useToast } from '../../context/ToastContext';
 
 // Schema de validação com Zod atualizado para PocketBase
 const userSchema = z.object({
-  name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
-  email: z.string().email("E-mail inválido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string(),
+  name: z
+    .string()
+    .min(1, "O nome é obrigatório")
+    .min(3, "O nome deve ter pelo menos 3 caracteres"),
+  email: z
+    .string()
+    .min(1, "O e-mail é obrigatório")
+    .email("E-mail inválido"),
+  password: z
+    .string()
+    .min(1, "A senha é obrigatória")
+    .min(6, "A senha deve ter pelo menos 6 caracteres"),
+  confirmPassword: z
+    .string()
+    .min(1, "A confirmação de senha é obrigatória"),
   tipo_acesso: z.enum(['admin', 'vendedor']),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
@@ -29,6 +42,7 @@ export default function Users() {
   const { users, isLoading } = useAppStore();
   const { createUser } = useUsers();
   
+  const { addToast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -73,20 +87,23 @@ export default function Users() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setIsCreating(true);
 
+    // Valida ANTES de travar o botão
     const result = userSchema.safeParse(formData);
 
     if (!result.success) {
       const formattedErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
         const key = issue.path[0] as string;
-        formattedErrors[key] = issue.message;
+        if (!formattedErrors[key]) {
+          formattedErrors[key] = issue.message;
+        }
       });
       setErrors(formattedErrors);
-      setIsCreating(false);
       return;
     }
+
+    setIsCreating(true);
 
     const saveResult = await createUser(
       formData.email,
@@ -105,49 +122,55 @@ export default function Users() {
         confirmPassword: '',
         tipo_acesso: 'vendedor'
       });
-      alert('Usuário criado com sucesso!');
+      addToast('success', 'Usuário criado!', 'O novo colaborador foi cadastrado com sucesso.');
     } else {
-      alert('Erro ao criar usuário: ' + saveResult.error);
+      addToast('error', 'Erro ao criar usuário', saveResult.error ?? 'Ocorreu um erro inesperado.');
     }
   };
 
   return (
     <>
       <PageMeta 
-        title="Gestão de Usuários | Solar Admin" 
+        title="Gestão de Usuários | Sofia Engenharia" 
         description="Gerenciamento de usuários e níveis de acesso do sistema."
       />
-      <PageBreadcrumb pageTitle="Segurança - Usuários" />
+      <PageBreadcrumb pageTitle="Gestão de Usuários" />
 
       <div className="space-y-6">
         <ComponentCard title="Cadastro de Novo Usuário">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
-                <Label>Nome Completo</Label>
+                <Label>
+                  Nome Completo <span className="text-error-500">*</span>
+                </Label>
                 <Input
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Nome do colaborador"
-                  required
+                  autoComplete="off"
                 />
                 {errors.name && <p className="mt-1 text-xs text-error-500">{errors.name}</p>}
               </div>
               <div>
-                <Label>E-mail Corporativo</Label>
+                <Label>
+                  E-mail <span className="text-error-500">*</span>
+                </Label>
                 <Input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="email@solar.com"
-                  required
+                  placeholder="sofiaengenharia@email.com"
+                  autoComplete="off"
                 />
                 {errors.email && <p className="mt-1 text-xs text-error-500">{errors.email}</p>}
               </div>
               <div>
-                <Label>Perfil de Acesso</Label>
+                <Label>
+                  Perfil de Acesso <span className="text-error-500">*</span>
+                </Label>
                 <Select
                   options={[
                     { value: 'admin', label: 'Administrador' },
@@ -158,26 +181,30 @@ export default function Users() {
                 />
               </div>
               <div>
-                <Label>Senha Temporária</Label>
+                <Label>
+                  Senha de Primeiro Acesso <span className="text-error-500">*</span>
+                </Label>
                 <Input
                   type="password"
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Mínimo 6 caracteres"
-                  required
+                  autoComplete="new-password"
                 />
                 {errors.password && <p className="mt-1 text-xs text-error-500">{errors.password}</p>}
               </div>
               <div>
-                <Label>Confirmar Senha</Label>
+                <Label>
+                  Confirmar Senha <span className="text-error-500">*</span>
+                </Label>
                 <Input
                   type="password"
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   placeholder="Repita a senha"
-                  required
+                  autoComplete="new-password"
                 />
                 {errors.confirmPassword && <p className="mt-1 text-xs text-error-500">{errors.confirmPassword}</p>}
               </div>
@@ -216,6 +243,9 @@ export default function Users() {
                     Colaborador
                   </th>
                   <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                    E-mail
+                  </th>
+                  <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
                     Perfil
                   </th>
                   <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
@@ -226,13 +256,13 @@ export default function Users() {
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={3} className="px-5 py-4 text-center text-gray-500">
+                    <td colSpan={4} className="px-5 py-4 text-center text-gray-500">
                       Carregando usuários...
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-5 py-4 text-center text-gray-500">
+                    <td colSpan={4} className="px-5 py-4 text-center text-gray-500">
                       Nenhum usuário localizado.
                     </td>
                   </tr>
@@ -243,7 +273,13 @@ export default function Users() {
                       className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
                     >
                       <td className="px-5 py-4 text-theme-sm text-gray-800 dark:text-white/90 font-medium">
-                        {u.name}
+                        <div className="flex items-center gap-3">
+                          <UserAvatar user={u} size="sm" />
+                          <span>{u.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
+                        {u.email}
                       </td>
                       <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                         <Badge size="sm" color={u.tipo_acesso === 'admin' ? 'success' : 'primary'}>

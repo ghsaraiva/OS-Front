@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useAuth } from "../../context/AuthContext";
-import { UserCircleIcon } from "../../icons";
+import UserAvatar from "../common/UserAvatar";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,11 +26,11 @@ export default function UserDropdown() {
     <div className="relative">
       <button
         onClick={toggleDropdown}
-        className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
+        className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400 focus:outline-none"
       >
-        <span className="sm:mr-3 flex items-center justify-center rounded-full h-11 w-11 bg-gray-100 dark:bg-gray-800 text-gray-500">
-          <UserCircleIcon className="size-6" />
-        </span>
+        <div className="sm:mr-3">
+          <UserAvatar user={user || undefined} size="md" />
+        </div>
 
         <span className="hidden sm:block mr-1 font-medium text-theme-sm">{user?.name || "Usuário"}</span>
         <svg
@@ -66,9 +67,25 @@ export default function UserDropdown() {
           </span>
         </div>
 
+        <div className="py-2 border-b border-gray-200 dark:border-gray-800">
+          <Link
+            to="/perfil"
+            onClick={closeDropdown}
+            className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200 transition-colors"
+          >
+            <svg
+              className="size-5 fill-gray-500 group-hover:fill-gray-700 dark:group-hover:fill-gray-300"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+            Meu Perfil
+          </Link>
+        </div>
+
         <button
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+          className="flex w-full items-center gap-3 px-3 py-2 mt-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
           <svg
             className="fill-gray-500 group-hover:fill-gray-700 dark:group-hover:fill-gray-300"

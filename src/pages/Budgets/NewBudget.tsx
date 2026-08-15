@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import { Skeleton } from "../../components/ui/Skeleton";
 import { useAuth } from "../../context/AuthContext";
 import BudgetActionDropdown from "../../components/budgets/BudgetActionDropdown";
+import UserAvatar from "../../components/common/UserAvatar";
 
 export default function NewBudget() {
   const { addToast } = useToast();
@@ -122,10 +123,10 @@ export default function NewBudget() {
   return (
     <>
       <PageMeta
-        title="Novo Orçamento | Solar Admin"
+        title="Novo Orçamento | Sofia Engenharia"
         description="Criação de novas solicitações de orçamento solar."
       />
-      <PageBreadcrumb pageTitle="Orçamentos - Novo Orçamento" />
+      <PageBreadcrumb pageTitle="Novo Orçamento" />
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 gap-6">
@@ -378,7 +379,10 @@ export default function NewBudget() {
                           {o.nome_cliente}
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                          {o.expand?.user_id?.name || "---"}
+                          <div className="flex items-center gap-2.5">
+                            <UserAvatar user={o.expand?.user_id} size="sm" />
+                            <span>{o.expand?.user_id?.name || "---"}</span>
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                           {formatLocation(o.cidade, o.estado)}

@@ -44,7 +44,7 @@ const navItems: NavItem[] = [
     name: "Segurança",
     icon: <LockIcon />,
     roles: ["admin"],
-    subItems: [{ name: "Novo Usuário", path: "/seguranca/usuarios" }],
+    subItems: [{ name: "Gestão de Usuários", path: "/seguranca/usuarios" }],
   },
 ];
 

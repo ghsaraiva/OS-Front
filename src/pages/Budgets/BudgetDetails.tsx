@@ -204,10 +204,10 @@ export default function BudgetDetails() {
   return (
     <>
       <PageMeta
-        title={`Detalhes Orçamento | ${orcamento.nome_cliente}`}
+        title={`Detalhes do Orçamento | ${orcamento.nome_cliente}`}
         description="Visualização detalhada da solicitação de orçamento solar."
       />
-      <PageBreadcrumb pageTitle="Orçamentos - Visualização Detalhada" />
+      <PageBreadcrumb pageTitle="Detalhes do Orçamento" />
 
       <div className="space-y-6 print:space-y-4 print:p-0">
         {/* Header de Ações - Escondido na Impressão */}

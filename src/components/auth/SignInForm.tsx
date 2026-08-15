@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -15,6 +15,8 @@ export default function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const mensagemSucesso = (location.state as any)?.mensagem ?? null;
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +51,14 @@ export default function SignInForm() {
           <div>
             <form onSubmit={handleSignIn}>
               <div className="space-y-6">
+                {mensagemSucesso && (
+                  <div className="p-3 text-sm text-white bg-success-500 rounded-lg flex items-center gap-2">
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {mensagemSucesso}
+                  </div>
+                )}
                 {error && (
                   <div className="p-3 text-sm text-white bg-error-500 rounded-lg">
                     {error}

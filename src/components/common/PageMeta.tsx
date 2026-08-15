@@ -2,7 +2,7 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 
 const PageMeta = ({
   title,
-  description = "Solar Admin Page",
+  description = "Sofia Engenharia",
 }: {
   title: string;
   description?: string;

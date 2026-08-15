@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { isValid, user, loading } = useAuth();
+  const { isValid, user, loading, primeiroAcesso } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -21,6 +21,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   if (!isValid) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Usuário autenticado mas ainda no primeiro acesso — bloquear tudo exceto a rota de troca de senha
+  if (primeiroAcesso && location.pathname !== '/alterar-senha') {
+    return <Navigate to="/alterar-senha" replace />;
   }
 
   if (allowedRoles && user) {
