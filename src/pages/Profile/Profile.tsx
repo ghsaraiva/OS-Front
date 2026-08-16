@@ -10,6 +10,7 @@ import Button from "../../components/ui/button/Button";
 import Badge from "../../components/ui/badge/Badge";
 import UserAvatar from "../../components/common/UserAvatar";
 import { useToast } from "../../context/ToastContext";
+import api from "../../services/api";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -72,6 +73,15 @@ export default function Profile() {
       return;
     }
 
+    if (name.trim() === user.name && !selectedFile) {
+      addToast(
+        "info",
+        "Sem alterações",
+        "Nenhuma mudança foi realizada no seu perfil.",
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
@@ -80,7 +90,7 @@ export default function Profile() {
         formData.append("avatar", selectedFile);
       }
 
-      await pb.collection("users").update(user.id, formData);
+      await api.patch(`/users/${user.id}/perfil`, formData);
       await pb.collection("users").authRefresh();
 
       setAvatarError(null);
@@ -93,7 +103,7 @@ export default function Profile() {
     } catch (err: any) {
       const responseData = err?.response?.data || err?.data || {};
       let errorMsg =
-        err?.message || "Ocorreu um erro ao salvar suas informações.";
+        err?.response?.data?.error || err?.message || "Ocorreu um erro ao salvar suas informações.";
 
       if (responseData.avatar) {
         const avatarDetail =
@@ -347,7 +357,7 @@ export default function Profile() {
 
                   {/* CAMPO BLOQUEADO: E-mail */}
                   <div>
-                    <Label>E-mail Corporativo (Bloqueado)</Label>
+                    <Label>E-mail</Label>
                     <Input
                       type="email"
                       value={user?.email || ""}
@@ -362,7 +372,7 @@ export default function Profile() {
 
                   {/* CAMPO BLOQUEADO: Perfil de Acesso */}
                   <div>
-                    <Label>Perfil de Acesso (Bloqueado)</Label>
+                    <Label>Perfil de Acesso</Label>
                     <div className="h-11 flex items-center px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/60 opacity-70">
                       <Badge
                         size="sm"

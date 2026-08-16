@@ -130,6 +130,7 @@ export default function BudgetActionDropdown({ budgetId, clientName, phone, emai
         phone={phone}
         email={email}
         clientName={clientName}
+        budgetId={budgetId}
       />
     </>
   );

@@ -21,6 +21,8 @@ import Select from "../../components/form/Select";
 import AutocompleteCity from "../../components/form/AutocompleteCity";
 import { Modal } from "../../components/ui/modal";
 import UserAvatar from "../../components/common/UserAvatar";
+import FieldTooltip from "../../components/common/FieldTooltip";
+import { formatPhoneMask, EMAIL_PATTERN } from "../../utils/userUtils";
 
 export default function BudgetManagement() {
   const { addToast } = useToast();
@@ -1159,22 +1161,43 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <Label>Telefone (WhatsApp)</Label>
+                      <Label>
+                        Telefone (WhatsApp)
+                        <FieldTooltip content="Utilizado para o envio da proposta via WhatsApp." />
+                      </Label>
                       <Controller
                         name="telefone_cliente"
                         control={control}
                         render={({ field }) => (
-                          <Input {...field} placeholder="(11) 99999-9999" />
+                          <Input
+                            {...field}
+                            placeholder="(11) 99999-9999"
+                            onChange={(e) => field.onChange(formatPhoneMask(e.target.value))}
+                            value={field.value || ""}
+                          />
                         )}
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <Label>E-mail</Label>
+                      <Label>
+                        E-mail
+                        <FieldTooltip content="Utilizado para o envio da proposta via e-mail." />
+                      </Label>
                       <Controller
                         name="email_cliente"
                         control={control}
+                        rules={{
+                          validate: (val) =>
+                            !val || EMAIL_PATTERN.test(val) || "Informe um e-mail válido (ex: cliente@email.com)",
+                        }}
                         render={({ field }) => (
-                          <Input {...field} type="email" placeholder="cliente@email.com" />
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="cliente@email.com"
+                            error={!!errors.email_cliente}
+                            hint={errors.email_cliente?.message as string}
+                          />
                         )}
                       />
                     </div>
@@ -2490,6 +2513,8 @@ export default function BudgetManagement() {
         phone={watchedTelefoneCliente}
         email={watchedEmailCliente}
         clientName={watchedNomeCliente}
+        budgetId={selectedOrcamento?.id}
+        onEmailSaved={(newEmail) => setValue("email_cliente", newEmail)}
       />
     </>
   );

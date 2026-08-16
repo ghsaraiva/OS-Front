@@ -10,10 +10,11 @@ import { format } from "date-fns";
 import { Skeleton } from "../../components/ui/Skeleton";
 import UserAvatar from "../../components/common/UserAvatar";
 import BudgetActionDropdown from "../../components/budgets/BudgetActionDropdown";
+import { getCollaboratorInfo } from "../../utils/userUtils";
 
 export default function AllBudgets() {
-  const { isAdmin } = useAuth();
-  const { budgets: orcamentos, isLoading: loading } = useAppStore();
+  const { user, isAdmin } = useAuth();
+  const { budgets: orcamentos, users, isLoading: loading } = useAppStore();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,22 +24,6 @@ export default function AllBudgets() {
     document.addEventListener("click", handleOutsideClick);
     return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
-
-  // Bloqueio de segurança adicional
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center h-[400px]">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Acesso Restrito
-          </h2>
-          <p className="mt-2 text-gray-500">
-            Apenas administradores podem acessar a listagem geral.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -60,13 +45,13 @@ export default function AllBudgets() {
   return (
     <>
       <PageMeta
-        title="Todos os Orçamentos | Sofia Engenharia"
-        description="Listagem geral de orçamentos do sistema."
+        title={isAdmin ? "Todos os Orçamentos | Sofia Engenharia" : "Meus Orçamentos | Sofia Engenharia"}
+        description={isAdmin ? "Listagem geral de orçamentos do sistema." : "Listagem dos seus orçamentos cadastrados."}
       />
-      <PageBreadcrumb pageTitle="Todos os Orçamentos" />
+      <PageBreadcrumb pageTitle={isAdmin ? "Todos os Orçamentos" : "Meus Orçamentos"} />
 
       <div className="space-y-6">
-        <ComponentCard title="Todos os Orçamentos Cadastrados">
+        <ComponentCard title={isAdmin ? "Todos os Orçamentos Cadastrados" : "Meus Orçamentos Cadastrados"}>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
               <thead>
@@ -131,6 +116,7 @@ export default function AllBudgets() {
                   orcamentos.map((o, index) => {
                     const isRefined = o.preco_final_venda !== undefined && o.preco_final_venda > 0;
                     const isLastRow = index === orcamentos.length - 1;
+                    const collab = getCollaboratorInfo(o, user, users);
                     return (
                       <tr 
                         key={o.id}
@@ -145,8 +131,8 @@ export default function AllBudgets() {
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                           <div className="flex items-center gap-2.5">
-                            <UserAvatar user={o.expand?.user_id} size="sm" />
-                            <span>{o.expand?.user_id?.name || "---"}</span>
+                            <UserAvatar user={collab} size="sm" />
+                            <span>{collab.name}</span>
                           </div>
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">

@@ -18,17 +18,21 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { useAuth } from "../../context/AuthContext";
 import BudgetActionDropdown from "../../components/budgets/BudgetActionDropdown";
 import UserAvatar from "../../components/common/UserAvatar";
+import FieldTooltip from "../../components/common/FieldTooltip";
+import { getCollaboratorInfo, formatPhoneMask, EMAIL_PATTERN } from "../../utils/userUtils";
 
 export default function NewBudget() {
   const { addToast } = useToast();
   const { createInitialBudget } = useBudgets();
-  const { budgets, isLoading: loadingStore, fetchBudgets } = useAppStore();
-  const { isAdmin } = useAuth();
+  const { budgets, users, isLoading: loadingStore, fetchBudgets } = useAppStore();
+  const { user, isAdmin } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleOutsideClick = () => setActiveMenuId(null);
+    const handleOutsideClick = () => {
+      setActiveMenuId(null);
+    };
     document.addEventListener("click", handleOutsideClick);
     return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
@@ -38,18 +42,26 @@ export default function NewBudget() {
     const state = estado?.toLowerCase().replace(/(?:^|\s|-)\S/g, (a) => a.toUpperCase()) || "---";
     return `${city} - ${state}`;
   };
-  
-  const { control, handleSubmit, setValue, reset, formState: { errors } } = useForm({
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
       nome_cliente: "",
+      telefone_cliente: "",
+      email_cliente: "",
       estado: "",
       id_cidade: "",
       cidade: "",
       observacao: "",
-      estrutura: "",
-      padrao: "",
-      consumo_mes: "",
-      valor_tarifa: "0,85",
+      estrutura: "Cerâmico",
+      padrao: "Bifásico",
+      consumo_mes: "1.200,00",
+      valor_tarifa: "1,00",
     },
   });
 
@@ -81,6 +93,8 @@ export default function NewBudget() {
 
   const onSubmit = async (data: {
     nome_cliente: string;
+    telefone_cliente?: string;
+    email_cliente?: string;
     estado: string;
     id_cidade: string;
     cidade: string;
@@ -150,6 +164,47 @@ export default function NewBudget() {
                   />
                 </div>
                 <div className="lg:col-span-1">
+                  <Label>
+                    Telefone (WhatsApp)
+                    <FieldTooltip content="Utilizado para o envio da proposta via WhatsApp." />
+                  </Label>
+                  <Controller
+                    name="telefone_cliente"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        placeholder="(11) 99999-9999"
+                        onChange={(e) => field.onChange(formatPhoneMask(e.target.value))}
+                        value={field.value || ""}
+                      />
+                    )}
+                  />
+                </div>
+                <div className="lg:col-span-1">
+                  <Label>
+                    E-mail
+                    <FieldTooltip content="Utilizado para o envio da proposta via e-mail." />
+                  </Label>
+                  <Controller
+                    name="email_cliente"
+                    control={control}
+                    rules={{
+                      validate: (val) =>
+                        !val || EMAIL_PATTERN.test(val) || "Informe um e-mail válido (ex: cliente@email.com)",
+                    }}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="cliente@email.com"
+                        error={!!errors.email_cliente}
+                        hint={errors.email_cliente?.message}
+                      />
+                    )}
+                  />
+                </div>
+                <div className="lg:col-span-1">
                   <Label required>Cidade</Label>
                   <Controller
                     name="id_cidade"
@@ -168,7 +223,7 @@ export default function NewBudget() {
                     )}
                   />
                 </div>
-                <div>
+                <div className="lg:col-span-1">
                   <Label>Estado</Label>
                   <Controller
                     name="estado"
@@ -367,6 +422,7 @@ export default function NewBudget() {
                   budgets.map((o, index) => {
                     const isRefined = o.preco_final_venda !== undefined && o.preco_final_venda > 0;
                     const isLastRow = index === budgets.length - 1;
+                    const collab = getCollaboratorInfo(o, user, users);
                     return (
                       <tr
                         key={o.id}
@@ -380,8 +436,8 @@ export default function NewBudget() {
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                           <div className="flex items-center gap-2.5">
-                            <UserAvatar user={o.expand?.user_id} size="sm" />
-                            <span>{o.expand?.user_id?.name || "---"}</span>
+                            <UserAvatar user={collab} size="sm" />
+                            <span>{collab.name}</span>
                           </div>
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
