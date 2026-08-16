@@ -29,8 +29,13 @@ export default function SignInForm() {
       
       // Navigate on success
       navigate("/");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao fazer login. Verifique suas credenciais.");
+    } catch (err: any) {
+      const errMsg = err?.message || "";
+      if (err?.status === 400 || errMsg.toLowerCase().includes("failed to authenticate")) {
+        setError("E-mail ou senha incorretos. Por favor, tente novamente.");
+      } else {
+        setError(errMsg || "Erro ao fazer login. Verifique suas credenciais.");
+      }
     } finally {
       setLoading(false);
     }

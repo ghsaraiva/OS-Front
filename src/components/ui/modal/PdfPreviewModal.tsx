@@ -53,13 +53,15 @@ export function PdfPreviewModal({
     }
     const name =
       clientName && clientName.trim() ? clientName.trim() : "Cliente";
-    const message = `Olá, ${name}!
+    const message = `*Olá, ${name}*!
 Sua proposta de energia solar está pronta.
 Preparamos uma solução personalizada para o seu projeto, com todos os detalhes do sistema, investimento, economia e prazo de retorno.
-Acesse sua proposta:
+*Acesse sua proposta:*
 ${pdfUrl}
-Detalhe: a proposta é válida por 15 dias.
-Em caso de dúvidas, nossa equipe está à disposição!`;
+*Validade da Proposta:* 15 dias.
+Em caso de dúvidas ou se precisar de qualquer esclarecimento sobre a proposta, nossa equipe está à disposição.
+Atenciosamente,
+*Sofia Engenharia Elétrica*`;
 
     const text = encodeURIComponent(message);
     const url = cleanPhone
