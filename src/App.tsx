@@ -65,7 +65,7 @@ export default function App() {
             <Route
               path="/orcamentos/todos"
               element={
-                <ProtectedRoute allowedRoles={["admin"]}>
+                <ProtectedRoute>
                   <AllBudgets />
                 </ProtectedRoute>
               }

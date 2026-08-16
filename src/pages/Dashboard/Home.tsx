@@ -7,10 +7,10 @@ export default function Home() {
   return (
     <>
       <PageMeta
-        title="Dashboard | Sofia Engenharia"
+        title="Início | Sofia Engenharia"
         description="Dashboard de Gestão de Orçamentos de Energia Solar"
       />
-      <PageBreadcrumb pageTitle="Dashboard" />
+      <PageBreadcrumb pageTitle="Início" />
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         <div className="col-span-12 space-y-6">
           <Metrics />

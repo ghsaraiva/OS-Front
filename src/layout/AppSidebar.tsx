@@ -32,11 +32,11 @@ const navItems: NavItem[] = [
       {
         name: "Gerenciar Orçamento",
         path: "/orcamentos/gerenciamento",
+        roles: ["admin"],
       },
       {
         name: "Todos os Orçamentos",
         path: "/orcamentos/todos",
-        roles: ["admin"],
       },
     ],
   },

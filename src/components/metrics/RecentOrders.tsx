@@ -6,10 +6,11 @@ import Badge from "../ui/badge/Badge";
 import { Skeleton } from "../ui/Skeleton";
 import BudgetActionDropdown from "../budgets/BudgetActionDropdown";
 import UserAvatar from "../common/UserAvatar";
+import { getCollaboratorInfo } from "../../utils/userUtils";
 
 export default function RecentOrders() {
   const { user, isAdmin } = useAuth();
-  const { budgets, isLoading: storeLoading, fetchBudgets } = useAppStore();
+  const { budgets, users, isLoading: storeLoading, fetchBudgets } = useAppStore();
   const [localLoading, setLocalLoading] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
@@ -145,6 +146,7 @@ export default function RecentOrders() {
                 {recentOrcamentos.map((o, index) => {
                   const isRefined = o.preco_final_venda !== undefined && o.preco_final_venda > 0;
                   const isLastRow = index === recentOrcamentos.length - 1;
+                  const collab = getCollaboratorInfo(o, user, users);
                   return (
                     <tr 
                       key={o.id}
@@ -158,8 +160,8 @@ export default function RecentOrders() {
                       </td>
                       <td className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                         <div className="flex items-center gap-2.5">
-                          <UserAvatar user={o.expand?.user_id} size="sm" />
-                          <span>{o.expand?.user_id?.name || "---"}</span>
+                          <UserAvatar user={collab} size="sm" />
+                          <span>{collab.name}</span>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400">

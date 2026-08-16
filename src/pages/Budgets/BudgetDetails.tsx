@@ -29,7 +29,7 @@ import api from "../../services/api";
 import { PdfPreviewModal } from "../../components/ui/modal/PdfPreviewModal";
 
 export default function BudgetDetails() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { id } = useParams<{ id: string }>();
   const { budgets, isLoading, updateBudgetInStore } = useAppStore();
   const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
@@ -159,10 +159,31 @@ export default function BudgetDetails() {
           Orçamento não encontrado.
         </p>
         <Link
-          to="/orcamentos/todos"
+          to={isAdmin ? "/orcamentos/todos" : "/"}
           className="text-brand-500 hover:underline flex items-center gap-2"
         >
           <ArrowLeft className="size-4" /> Voltar
+        </Link>
+      </div>
+    );
+  }
+
+  // Vendedor só pode acessar seus próprios orçamentos
+  if (!isAdmin && user && orcamento.user_id !== user.id) {
+    return (
+      <div className="flex h-[400px] flex-col items-center justify-center gap-4 text-center px-4">
+        <AlertCircle className="size-16 text-error-500" />
+        <h3 className="text-xl font-bold text-gray-800 dark:text-white mt-2">
+          Acesso Não Autorizado
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md">
+          Você não tem permissão para visualizar este orçamento pois ele pertence a outro colaborador.
+        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+        >
+          <ArrowLeft className="size-4" /> Voltar para o Início
         </Link>
       </div>
     );
@@ -180,22 +201,23 @@ export default function BudgetDetails() {
         </h3>
         <p className="text-gray-500 dark:text-gray-400 max-w-md">
           Este orçamento ainda não passou pelo refinamento gerencial. Por favor,
-          acesse a página gerencial para preenchê-lo antes de tentar visualizar
-          ou imprimir.
+          solicite ao administrador o preenchimento dos dados gerenciais.
         </p>
         <div className="flex gap-4 mt-2">
           <Link
-            to="/orcamentos/todos"
+            to={isAdmin ? "/orcamentos/todos" : "/"}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            <ArrowLeft className="size-4" /> Voltar para Listagem
+            <ArrowLeft className="size-4" /> Voltar para o Início
           </Link>
-          <Link
-            to="/orcamentos/gerenciamento"
-            className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
-          >
-            Ir para Refinamento Gerencial
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/orcamentos/gerenciamento"
+              className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+            >
+              Ir para Refinamento Gerencial
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -213,11 +235,11 @@ export default function BudgetDetails() {
         {/* Header de Ações - Escondido na Impressão */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <Link
-            to="/orcamentos/todos"
+            to={isAdmin ? "/orcamentos/todos" : "/"}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="size-4" />
-            Voltar para Listagem
+            Voltar para {isAdmin ? "Listagem" : "Início"}
           </Link>
           <div className="flex flex-wrap gap-3">
             {isAdmin && orcamento && (
@@ -639,190 +661,223 @@ export default function BudgetDetails() {
               </div>
             </ComponentCard>
 
-            {/* Matemática do Negócio (Financeiro Detalhado) */}
-            <ComponentCard
-              title={
-                <div className="flex items-center gap-2 text-gray-800 dark:text-white/90">
-                  <DollarSign className="size-5 text-brand-500" />
-                  <span>Matemática do Negócio</span>
-                </div>
-              }
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Custos Diretos */}
-                <div className="md:col-span-2">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-100 dark:border-white/[0.05] bg-gray-50/50 dark:bg-white/[0.02]">
-                        <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
-                          Item de Custo
-                        </th>
-                        <th className="px-5 py-3 text-end text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
-                          Valor
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                      <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
-                        <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                          Kit Licenciado
-                        </td>
-                        <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
-                          {formatCurrency(orcamento.valor_kit_final)}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
-                        <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                          Mão de Obra Total
-                        </td>
-                        <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
-                          {formatCurrency(orcamento.valor_mao_obra_final)}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
-                        <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                          Equipamento Local Total
-                        </td>
-                        <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
-                          {formatCurrency(orcamento.valor_equip_local_final)}
-                        </td>
-                      </tr>
-                      <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
-                        <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                          Homologação
-                        </td>
-                        <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
-                          {formatCurrency(orcamento.valor_homologacao)}
-                        </td>
-                      </tr>
-                      <tr className="bg-brand-50/50 dark:bg-brand-500/5 transition-colors border-t border-brand-100 dark:border-brand-500/20">
-                        <td className="px-5 py-4 text-theme-sm font-bold text-brand-600 dark:text-brand-400 uppercase">
-                          CUSTO TOTAL DO PROJETO
-                        </td>
-                        <td className="px-5 py-4 text-end text-theme-sm font-bold text-brand-700 dark:text-white">
-                          {formatCurrency(orcamento.custo_projeto)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Impostos e Lucros */}
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 space-y-3">
-                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                      <ShieldCheck className="size-3" /> Fatiamento
-                    </h5>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Impostos (15%):</span>
-                      <span className="font-medium text-red-500">
-                        {formatCurrency(orcamento.imposto)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Seguro (1.5%):</span>
-                      <span className="font-medium text-gray-600 dark:text-gray-400">
-                        {formatCurrency(orcamento.seguro)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">
-                        Margem Segurança (3%):
-                      </span>
-                      <span className="font-medium text-orange-500">
-                        {formatCurrency(orcamento.margem_seguranca)}
-                      </span>
-                    </div>
+            {/* Matemática do Negócio (Financeiro Detalhado - Exclusivo para Administrador) */}
+            {isAdmin ? (
+              <ComponentCard
+                title={
+                  <div className="flex items-center gap-2 text-gray-800 dark:text-white/90">
+                    <DollarSign className="size-5 text-brand-500" />
+                    <span>Matemática do Negócio</span>
+                  </div>
+                }
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Custos Diretos */}
+                  <div className="md:col-span-2">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-white/[0.05] bg-gray-50/50 dark:bg-white/[0.02]">
+                          <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                            Item de Custo
+                          </th>
+                          <th className="px-5 py-3 text-end text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                            Valor
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Kit Licenciado
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_kit_final)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Mão de Obra Total
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_mao_obra_final)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Equipamento Local Total
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_equip_local_final)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Homologação
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_homologacao)}
+                          </td>
+                        </tr>
+                        <tr className="bg-brand-50/50 dark:bg-brand-500/5 transition-colors border-t border-brand-100 dark:border-brand-500/20">
+                          <td className="px-5 py-4 text-theme-sm font-bold text-brand-600 dark:text-brand-400 uppercase">
+                            CUSTO TOTAL DO PROJETO
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-brand-700 dark:text-white">
+                            {formatCurrency(orcamento.custo_projeto)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-success-50 dark:bg-success-500/10 border border-success-100 dark:border-success-500/20">
-                    <p className="text-[10px] font-bold text-success-600 uppercase tracking-widest">
-                      Lucro Previsto ({orcamento.lucro_liquido_perc}%)
-                    </p>
-                    <p className="text-xl font-bold text-success-700 dark:text-success-400">
-                      {formatCurrency(orcamento.lucro_liquido_previsto)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Preço de Venda Final */}
-              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500 text-gray-900 shadow-lg shadow-brand-500/20">
-                    <DollarSign className="size-6" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
-                      Preço de Venda Sugerido
-                    </p>
-                    {isEditingPrice ? (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xl font-bold text-gray-800 dark:text-white/90">
-                          R$
+                  {/* Impostos e Lucros */}
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 space-y-3">
+                      <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                        <ShieldCheck className="size-3" /> Fatiamento
+                      </h5>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">Impostos (15%):</span>
+                        <span className="font-medium text-red-500">
+                          {formatCurrency(orcamento.imposto)}
                         </span>
-                        <input
-                          type="text"
-                          value={tempPrice}
-                          onChange={(e) =>
-                            setTempPrice(formatInputCurrency(e.target.value))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSavePrice();
-                            else if (e.key === "Escape")
-                              setIsEditingPrice(false);
-                          }}
-                          disabled={isSavingPrice}
-                          className="w-40 px-3 py-1 text-lg font-bold text-gray-800 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleSavePrice}
-                          disabled={isSavingPrice}
-                          className="p-1.5 bg-brand-500 text-gray-900 rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
-                          title="Salvar"
-                        >
-                          <Check className="size-5" />
-                        </button>
-                        <button
-                          onClick={() => setIsEditingPrice(false)}
-                          disabled={isSavingPrice}
-                          className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                          title="Cancelar"
-                        >
-                          <X className="size-5" />
-                        </button>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2 group">
-                        <p className="text-3xl font-black text-gray-800 dark:text-white/90">
-                          {formatCurrency(orcamento.preco_final_venda)}
-                        </p>
-                        <button
-                          onClick={() => {
-                            setTempPrice(
-                              formatInputCurrency(
-                                orcamento.preco_final_venda || 0,
-                              ),
-                            );
-                            setIsEditingPrice(true);
-                          }}
-                          className="p-1 text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 print:hidden"
-                          title="Editar Preço"
-                        >
-                          <Edit2 className="size-4" />
-                        </button>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">Seguro (1.5%):</span>
+                        <span className="font-medium text-gray-600 dark:text-gray-400">
+                          {formatCurrency(orcamento.seguro)}
+                        </span>
                       </div>
-                    )}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-500">
+                          Margem Segurança (3%):
+                        </span>
+                        <span className="font-medium text-orange-500">
+                          {formatCurrency(orcamento.margem_seguranca)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-success-50 dark:bg-success-500/10 border border-success-100 dark:border-success-500/20">
+                      <p className="text-[10px] font-bold text-success-600 uppercase tracking-widest">
+                        Lucro Previsto ({orcamento.lucro_liquido_perc}%)
+                      </p>
+                      <p className="text-xl font-bold text-success-700 dark:text-success-400">
+                        {formatCurrency(orcamento.lucro_liquido_previsto)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end">
-                  <p className="text-[10px] text-gray-400 italic">
-                    Válido por 7 dias conforme cotação do kit.
-                  </p>
+
+                {/* Preço de Venda Final com Edição para Admin */}
+                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500 text-gray-900 shadow-lg shadow-brand-500/20">
+                      <DollarSign className="size-6" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                        Preço de Venda Sugerido
+                      </p>
+                      {isEditingPrice ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xl font-bold text-gray-800 dark:text-white/90">
+                            R$
+                          </span>
+                          <input
+                            type="text"
+                            value={tempPrice}
+                            onChange={(e) =>
+                              setTempPrice(formatInputCurrency(e.target.value))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSavePrice();
+                              else if (e.key === "Escape")
+                                setIsEditingPrice(false);
+                            }}
+                            disabled={isSavingPrice}
+                            className="w-40 px-3 py-1 text-lg font-bold text-gray-800 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSavePrice}
+                            disabled={isSavingPrice}
+                            className="p-1.5 bg-brand-500 text-gray-900 rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                            title="Salvar"
+                          >
+                            <Check className="size-5" />
+                          </button>
+                          <button
+                            onClick={() => setIsEditingPrice(false)}
+                            disabled={isSavingPrice}
+                            className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                            title="Cancelar"
+                          >
+                            <X className="size-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 group">
+                          <p className="text-3xl font-black text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.preco_final_venda)}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setTempPrice(
+                                formatInputCurrency(
+                                  orcamento.preco_final_venda || 0,
+                                ),
+                              );
+                              setIsEditingPrice(true);
+                            }}
+                            className="p-1 text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 print:hidden"
+                            title="Editar Preço"
+                          >
+                            <Edit2 className="size-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="text-[10px] text-gray-400 italic">
+                      Válido por 7 dias conforme cotação do kit.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </ComponentCard>
+              </ComponentCard>
+            ) : (
+              /* CARD DE VALOR FINAL EXCLUSIVO PARA VENDEDOR (SEM CUSTOS E SEM EDICAO) */
+              <ComponentCard
+                title={
+                  <div className="flex items-center gap-2 text-gray-800 dark:text-white/90">
+                    <DollarSign className="size-5 text-brand-500" />
+                    <span>Valor Final da Proposta</span>
+                  </div>
+                }
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-brand-50/50 dark:bg-brand-500/5 border border-brand-200/50 dark:border-brand-500/10">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-brand-500 text-gray-900 shadow-md shrink-0">
+                      <DollarSign className="size-6" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">
+                        Preço Final de Venda
+                      </p>
+                      <p className="text-3xl font-black text-gray-900 dark:text-white">
+                        {formatCurrency(orcamento.preco_final_venda)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-center sm:text-right">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      Proposta comercial válida por 7 dias.
+                    </p>
+                  </div>
+                </div>
+              </ComponentCard>
+            )}
           </div>
         </div>
       </div>
@@ -834,6 +889,10 @@ export default function BudgetDetails() {
         phone={orcamento?.telefone_cliente}
         email={orcamento?.email_cliente}
         clientName={orcamento?.nome_cliente}
+        budgetId={orcamento?.id}
+        onEmailSaved={(newEmail) =>
+          setOrcamento((prev) => (prev ? { ...prev, email_cliente: newEmail } : null))
+        }
       />
     </>
   );
