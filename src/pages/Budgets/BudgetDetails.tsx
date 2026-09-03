@@ -574,7 +574,7 @@ export default function BudgetDetails() {
                       Retorno Financeiro:
                     </span>
                     <span className="text-sm font-bold text-amber-700">
-                      {orcamento.tempo_retorno || "N/A"}
+                      {orcamento.tempo_retorno || "Sem Retorno (Geração Excedente)"}
                     </span>
                   </div>
                 </div>
@@ -636,7 +636,7 @@ export default function BudgetDetails() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Potência/Tensão:</span>
                       <span className="font-medium text-gray-800 dark:text-white/90">
-                        {orcamento.potencia_inversor}W /{" "}
+                        {orcamento.potencia_inversor} kW /{" "}
                         {orcamento.tensao_inversor}V
                       </span>
                     </div>
@@ -718,6 +718,16 @@ export default function BudgetDetails() {
                             {formatCurrency(orcamento.valor_homologacao)}
                           </td>
                         </tr>
+                        {Boolean(orcamento.km && orcamento.km > 0 && orcamento.custo_km && orcamento.custo_km > 0) && (
+                          <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                            <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                              Deslocamento ({orcamento.km} km × {formatCurrency(orcamento.custo_km)})
+                            </td>
+                            <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                              {formatCurrency((orcamento.km || 0) * (orcamento.custo_km || 0))}
+                            </td>
+                          </tr>
+                        )}
                         <tr className="bg-brand-50/50 dark:bg-brand-500/5 transition-colors border-t border-brand-100 dark:border-brand-500/20">
                           <td className="px-5 py-4 text-theme-sm font-bold text-brand-600 dark:text-brand-400 uppercase">
                             CUSTO TOTAL DO PROJETO
@@ -737,13 +747,45 @@ export default function BudgetDetails() {
                         <ShieldCheck className="size-3" /> Fatiamento
                       </h5>
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">Impostos (15%):</span>
+                        <span className="text-gray-500">
+                          Impostos (
+                          {orcamento.porcentagem_imposto !== undefined
+                            ? orcamento.porcentagem_imposto
+                            : orcamento.imposto &&
+                                orcamento.preco_final_venda &&
+                                orcamento.valor_kit_final &&
+                                orcamento.preco_final_venda - orcamento.valor_kit_final > 0
+                              ? Number(
+                                  (
+                                    (orcamento.imposto /
+                                      (orcamento.preco_final_venda -
+                                        orcamento.valor_kit_final)) *
+                                    100
+                                  ).toFixed(1),
+                                )
+                              : 8}
+                          %):
+                        </span>
                         <span className="font-medium text-red-500">
                           {formatCurrency(orcamento.imposto)}
                         </span>
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">Seguro (1.5%):</span>
+                        <span className="text-gray-500">
+                          Seguro (
+                          {orcamento.porcentagem_seguro !== undefined
+                            ? orcamento.porcentagem_seguro
+                            : orcamento.seguro && orcamento.preco_final_venda
+                              ? Number(
+                                  (
+                                    (orcamento.seguro /
+                                      orcamento.preco_final_venda) *
+                                    100
+                                  ).toFixed(1),
+                                )
+                              : 1}
+                          %):
+                        </span>
                         <span className="font-medium text-gray-600 dark:text-gray-400">
                           {formatCurrency(orcamento.seguro)}
                         </span>

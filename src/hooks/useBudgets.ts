@@ -40,6 +40,10 @@ export interface Orcamento {
   valor_kit?: number;
   porcentagem_kit?: number;
   valor_homologacao?: number;
+  km?: number;
+  custo_km?: number;
+  porcentagem_imposto?: number;
+  porcentagem_seguro?: number;
 
   // Retornos de Cálculo
   valor_kit_final?: number;
