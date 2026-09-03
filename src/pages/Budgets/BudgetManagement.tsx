@@ -150,9 +150,13 @@ export default function BudgetManagement() {
       tempo_retorno: "",
 
       valor_kit: "0,00",
-      porcentagem_kit: "0",
+      porcentagem_kit: "0,00",
       mao_obra: "100,00",
       equipamento_local: "60,00",
+      km: "0",
+      custo_km: "0,00",
+      porcentagem_seguro: "1,00",
+      porcentagem_imposto: "8,00",
       lucro_liquido_perc: "20,00",
       valor_kit_final: "0,00",
       lucro_equipamento: "0,00",
@@ -205,6 +209,17 @@ export default function BudgetManagement() {
     return `${formattedInteger},${decimalPart}`;
   }, []);
 
+  const formatPercent = useCallback((value: string | number) => {
+    if (value === undefined || value === null || value === "") return "0,00";
+    if (typeof value === "number") value = value.toFixed(2);
+    const cleanValue = value.toString().replace(/\D/g, "");
+    if (!cleanValue) return "0,00";
+    const integerPart = cleanValue.slice(0, -2) || "0";
+    const decimalPart = cleanValue.slice(-2).padStart(2, "0");
+    const formattedInteger = parseInt(integerPart, 10).toLocaleString("pt-BR");
+    return `${formattedInteger},${decimalPart}`;
+  }, []);
+
   const parseCurrencyToNumber = (value: string | number) => {
     if (!value) return 0;
     if (typeof value === "number") return value;
@@ -229,6 +244,10 @@ export default function BudgetManagement() {
   const watchedValorKitFinal = watch("valor_kit_final");
   const watchedMaoObra = watch("mao_obra");
   const watchedEquipLocal = watch("equipamento_local");
+  const watchedKm = watch("km");
+  const watchedCustoKm = watch("custo_km");
+  const watchedPorcentagemSeguro = watch("porcentagem_seguro");
+  const watchedPorcentagemImposto = watch("porcentagem_imposto");
   const watchedLucroPerc = watch("lucro_liquido_perc");
   const watchedHomologacao = watch("valor_homologacao");
   const watchedIdCidade = watch("id_cidade");
@@ -285,6 +304,10 @@ export default function BudgetManagement() {
     watchedEquipLocal,
     watchedHomologacao,
     watchedQtdPaineis,
+    watchedKm,
+    watchedCustoKm,
+    watchedPorcentagemSeguro,
+    watchedPorcentagemImposto,
   ]);
 
   // Watchers for sections 6, 7, 8 completion status
@@ -538,7 +561,7 @@ export default function BudgetManagement() {
             );
             setValue("valor_pago_mes", formatCurrency(d.valor_pago_mes ?? 0));
             setValue("valor_pago_ano", formatCurrency(d.valor_pago_ano ?? 0));
-            setValue("tempo_retorno", d.tempo_retorno || "N/A");
+            setValue("tempo_retorno", d.tempo_retorno || "Sem Retorno (Geração Excedente)");
           }
         } catch {
           // Silent
@@ -574,7 +597,7 @@ export default function BudgetManagement() {
     const triggerLicenciamento = async () => {
       if (!isDirty) return;
       const valorKitNum = parseCurrencyToNumber(watchedValorKit);
-      const perc = parseInt(watchedPorcentagemKit);
+      const perc = parseCurrencyToNumber(watchedPorcentagemKit);
       if (valorKitNum > 0) {
         try {
           const response = await api.post("/licenciamento-kit", {
@@ -642,41 +665,25 @@ export default function BudgetManagement() {
     return () => clearTimeout(timer);
   }, [watchedPotenciaInversor, watchedQtdInversores, setValue, formatCurrency, isDirty]);
 
-  // Passo 5: Preço Final (Cascata de Markup)
+  // Passo 5: Preço Final e Cascata de Custos
   useEffect(() => {
     const kitLicenciado = parseCurrencyToNumber(watchedValorKitFinal);
-    const qtdPaineis = parseInt(watchedQtdPaineis);
-    const lucro = parseFloat(watchedLucroPerc?.toString().replace(",", "."));
-    const isReady =
-      kitLicenciado > 0 && qtdPaineis > 0 && !isNaN(lucro) && lucro > 0;
-
-    if (isDirty && isReady) {
-      if (
-        document.activeElement?.getAttribute("name") !== "preco_final_venda" &&
-        lastChangedField.current !== "price"
-      ) {
-        setIsCalculandoPrecoFinal(true);
-      }
+    const qtdPaineis = parseInt(watchedQtdPaineis) || 0;
+    const isReady = kitLicenciado > 0 && qtdPaineis > 0;
+    if (isDirty && isReady && lastChangedField.current !== "price") {
+      setIsCalculandoPrecoFinal(true);
     }
     const triggerPrecoFinal = async () => {
       if (!isDirty) return;
-      // Se o usuário estiver editando o preço final de venda diretamente, não calculamos o preço sugerido do lucro
-      if (
-        document.activeElement?.getAttribute("name") === "preco_final_venda"
-      ) {
-        setIsCalculandoPrecoFinal(false);
-        return;
-      }
-      // Se a última alteração foi no preço, ignoramos o recálculo do preço sugerido (para não sobrescrever o valor digitado)
       if (lastChangedField.current === "price") {
-        lastChangedField.current = null;
-        setIsCalculandoPrecoFinal(false);
         return;
       }
       const kitLicenciado = parseCurrencyToNumber(watchedValorKitFinal);
-      const qtdPaineis = parseInt(watchedQtdPaineis);
-      const lucro = parseFloat(watchedLucroPerc?.toString().replace(",", "."));
-      if (kitLicenciado > 0 && qtdPaineis > 0 && !isNaN(lucro) && lucro > 0) {
+      const qtdPaineis = parseInt(watchedQtdPaineis) || 0;
+      const lucro =
+        parseFloat(watchedLucroPerc?.toString().replace(",", ".")) || 0;
+
+      if (kitLicenciado > 0 && qtdPaineis > 0) {
         try {
           const response = await api.post("/preco-final", {
             valorKitLicenciado: kitLicenciado,
@@ -687,6 +694,10 @@ export default function BudgetManagement() {
             quantidade_paineis: qtdPaineis,
             quantidade_inversores: parseInt(watchedQtdInversores) || 0,
             potencia_inversor: parseFloat(watchedPotenciaInversor?.toString().replace(",", ".")) || 0,
+            km: parseInt(watchedKm) || 0,
+            custo_km: parseCurrencyToNumber(watchedCustoKm),
+            porcentagem_seguro: parseCurrencyToNumber(watchedPorcentagemSeguro) || 1,
+            porcentagem_imposto: parseCurrencyToNumber(watchedPorcentagemImposto) || 8,
           });
           const data = response.data;
           if (data) {
@@ -739,6 +750,10 @@ export default function BudgetManagement() {
     watchedQtdInversores,
     watchedPotenciaInversor,
     watchedQtdPaineis,
+    watchedKm,
+    watchedCustoKm,
+    watchedPorcentagemSeguro,
+    watchedPorcentagemImposto,
     setValue,
     formatCurrency,
     isDirty,
@@ -793,6 +808,37 @@ export default function BudgetManagement() {
             // Silenced
           });
       }
+
+      const seguroHistorico =
+        orcamento.porcentagem_seguro !== undefined &&
+        orcamento.porcentagem_seguro !== null
+          ? orcamento.porcentagem_seguro
+          : orcamento.seguro && orcamento.preco_final_venda
+            ? Number(
+                (
+                  (orcamento.seguro / orcamento.preco_final_venda) *
+                  100
+                ).toFixed(2),
+              )
+            : 1;
+
+      const impostoHistorico =
+        orcamento.porcentagem_imposto !== undefined &&
+        orcamento.porcentagem_imposto !== null
+          ? orcamento.porcentagem_imposto
+          : orcamento.imposto &&
+              orcamento.preco_final_venda &&
+              orcamento.valor_kit_final &&
+              orcamento.preco_final_venda - orcamento.valor_kit_final > 0
+            ? Number(
+                (
+                  (orcamento.imposto /
+                    (orcamento.preco_final_venda -
+                      orcamento.valor_kit_final)) *
+                  100
+                ).toFixed(2),
+              )
+            : 8;
 
       reset({
         nome_cliente: orcamento.nome_cliente || "",
@@ -849,9 +895,13 @@ export default function BudgetManagement() {
         tempo_retorno: orcamento.tempo_retorno || "",
 
         valor_kit: formatCurrency(orcamento.valor_kit || 0),
-        porcentagem_kit: (orcamento.porcentagem_kit || 0).toString(),
+        porcentagem_kit: formatPercent(orcamento.porcentagem_kit || 0),
         mao_obra: formatCurrency(orcamento.mao_obra || 100),
         equipamento_local: formatCurrency(orcamento.equipamento_local || 60),
+        km: (orcamento.km || 0).toString(),
+        custo_km: formatCurrency(orcamento.custo_km || 0),
+        porcentagem_seguro: formatPercent(seguroHistorico),
+        porcentagem_imposto: formatPercent(impostoHistorico),
         lucro_liquido_perc: (orcamento.lucro_liquido_perc || 20)
           .toFixed(2)
           .replace(".", ","),
@@ -926,7 +976,7 @@ export default function BudgetManagement() {
           ?.scrollIntoView({ behavior: "smooth" });
       }, 200);
     },
-    [reset, formatCurrency, setValue],
+    [formatCurrency, formatPercent, reset],
   );
 
   useEffect(() => {
@@ -938,7 +988,7 @@ export default function BudgetManagement() {
     }
   }, [urlOrcamentoId, budgets, handleSelectOrcamento]);
 
-  const onSubmit = async (data: Record<string, string>) => {
+  const onSubmit = async (data: any) => {
     if (!selectedOrcamento) return;
     setIsSaving(true);
 
@@ -959,15 +1009,20 @@ export default function BudgetManagement() {
       peso_painel: parseFloat(data.peso_painel) || 0,
       marca_modulo: data.marca_modulo,
       quantidade_inversores: parseInt(data.qtd_inversores),
-      potencia_inversor: parseInt(data.potencia_inversor) || 0,
+      potencia_inversor:
+        parseFloat(data.potencia_inversor?.toString().replace(",", ".")) || 0,
       modelo_inversor: data.modelo_inversor,
       marca_inversor: data.marca_inversor,
       tensao_inversor: data.tensao_inversor,
       valorKit: parseCurrencyToNumber(data.valor_kit),
-      valorPorcentagem: parseInt(data.porcentagem_kit),
+      valorPorcentagem: parseCurrencyToNumber(data.porcentagem_kit),
       valorMaoDeObra: parseCurrencyToNumber(data.mao_obra),
       valorEquipamentoLocal: parseCurrencyToNumber(data.equipamento_local),
       valorHomologacao: parseCurrencyToNumber(data.valor_homologacao),
+      km: parseInt(data.km) || 0,
+      custo_km: parseCurrencyToNumber(data.custo_km),
+      porcentagem_seguro: parseCurrencyToNumber(data.porcentagem_seguro) || 1,
+      porcentagem_imposto: parseCurrencyToNumber(data.porcentagem_imposto) || 8,
       porcentagemLucroLiquido: parseFloat(
         data.lucro_liquido_perc.toString().replace(",", "."),
       ),
@@ -1287,7 +1342,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <Label required>Consumo Mês (R$)</Label>
+                      <Label required>Consumo Mensal (R$)</Label>
                       <Controller
                         name="consumo_mes"
                         control={control}
@@ -1303,7 +1358,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-3">
-                      <Label required>Tarifa (R$)</Label>
+                      <Label required>Tarifa de Energia (R$)</Label>
                       <Controller
                         name="valor_tarifa"
                         control={control}
@@ -1413,7 +1468,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Quantidade Inversores</Label>
+                      <Label required>Quantidade de Inversores</Label>
                       <Controller
                         name="qtd_inversores"
                         control={control}
@@ -1428,7 +1483,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Potência Inversor (kW)</Label>
+                      <Label required>Potência do Inversor (kW)</Label>
                       <Controller
                         name="potencia_inversor"
                         control={control}
@@ -1442,7 +1497,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Modelo Inversor</Label>
+                      <Label required>Modelo do Inversor</Label>
                       <Controller
                         name="modelo_inversor"
                         control={control}
@@ -1453,7 +1508,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Marca Inversor</Label>
+                      <Label required>Marca do Inversor</Label>
                       <Controller
                         name="marca_inversor"
                         control={control}
@@ -1464,7 +1519,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Tensão Inversor</Label>
+                      <Label required>Tensão do Inversor (V)</Label>
                       <Controller
                         name="tensao_inversor"
                         control={control}
@@ -1510,7 +1565,7 @@ export default function BudgetManagement() {
                 }
               >
                 {isSection2Open && (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-5 animate-slideDown">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 animate-slideDown">
                     <div>
                       <Label required>Valor do Kit (R$)</Label>
                       <Controller
@@ -1529,7 +1584,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Porcentagem (%)</Label>
+                      <Label required>Margem do Kit (%)</Label>
                       <Controller
                         name="porcentagem_kit"
                         control={control}
@@ -1537,7 +1592,10 @@ export default function BudgetManagement() {
                         render={({ field }) => (
                           <Input
                             {...field}
-                            type="number"
+                            onChange={(e) =>
+                              field.onChange(formatPercent(e.target.value))
+                            }
+                            placeholder="0,00"
                             error={!!errors.porcentagem_kit}
                           />
                         )}
@@ -1577,7 +1635,76 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label required>Lucro Líquido %</Label>
+                      <Label>Distância (km)</Label>
+                      <Controller
+                        name="km"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            error={!!errors.km}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label>Custo do km (R$)</Label>
+                      <Controller
+                        name="custo_km"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(formatCurrency(e.target.value))
+                            }
+                            placeholder="0,00"
+                            error={!!errors.custo_km}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label required>Seguro (%)</Label>
+                      <Controller
+                        name="porcentagem_seguro"
+                        control={control}
+                        rules={{ required: "Obrigatório" }}
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(formatPercent(e.target.value))
+                            }
+                            placeholder="1,00"
+                            error={!!errors.porcentagem_seguro}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label required>Imposto sobre Venda (%)</Label>
+                      <Controller
+                        name="porcentagem_imposto"
+                        control={control}
+                        rules={{ required: "Obrigatório" }}
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(formatPercent(e.target.value))
+                            }
+                            placeholder="8,00"
+                            error={!!errors.porcentagem_imposto}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label required>Lucro Líquido (%)</Label>
                       <Controller
                         name="lucro_liquido_perc"
                         control={control}
@@ -1636,7 +1763,7 @@ export default function BudgetManagement() {
                 {isSectionSistemaOpen && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-4 animate-slideDown">
                     <div>
-                      <Label>Sistema</Label>
+                      <Label>Potência do Sistema (kWp)</Label>
                       <Controller
                         name="sistema_kwp"
                         control={control}
@@ -1654,7 +1781,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Geração</Label>
+                      <Label>Geração Estimada (kWh/mês)</Label>
                       <Controller
                         name="geracao_faturavel"
                         control={control}
@@ -1672,7 +1799,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Quantidade da Composição</Label>
+                      <Label>Quantidade de Painéis</Label>
                       <Controller
                         name="qtd_composicao"
                         control={control}
@@ -1690,7 +1817,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Área Estimada</Label>
+                      <Label>Área Estimada (m²)</Label>
                       <Controller
                         name="area_estimada"
                         control={control}
@@ -1708,7 +1835,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Média do Mês</Label>
+                      <Label>Geração Média Mensal (kWh)</Label>
                       <Controller
                         name="geracao_media_mes"
                         control={control}
@@ -1726,7 +1853,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Média do Ano</Label>
+                      <Label>Geração Média Anual (kWh)</Label>
                       <Controller
                         name="geracao_media_ano"
                         control={control}
@@ -1744,7 +1871,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Valor Pago por Mês</Label>
+                      <Label>Valor Pago por Mês (R$)</Label>
                       <Controller
                         name="valor_pago_mes"
                         control={control}
@@ -1762,7 +1889,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Valor Pago por Ano</Label>
+                      <Label>Valor Pago por Ano (R$)</Label>
                       <Controller
                         name="valor_pago_ano"
                         control={control}
@@ -1780,7 +1907,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Porcentagem de Redução</Label>
+                      <Label>Redução na Fatura (%)</Label>
                       <Controller
                         name="porcentagem_reducao"
                         control={control}
@@ -1803,7 +1930,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Retorno Financeiro</Label>
+                      <Label>Tempo de Retorno (Payback)</Label>
                       <Controller
                         name="tempo_retorno"
                         control={control}
@@ -1859,7 +1986,7 @@ export default function BudgetManagement() {
                 {isSection3Open && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-4 animate-slideDown">
                     <div>
-                      <Label>Valor Kit Final</Label>
+                      <Label>Valor do Kit Final (R$)</Label>
                       <Controller
                         name="valor_kit_final"
                         control={control}
@@ -1877,7 +2004,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Lucro Equipamento</Label>
+                      <Label>Lucro do Equipamento (R$)</Label>
                       <Controller
                         name="lucro_equipamento"
                         control={control}
@@ -1895,7 +2022,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Valor Mão de Obra</Label>
+                      <Label>Valor Mão de Obra (R$)</Label>
                       <Controller
                         name="valor_mao_obra_final"
                         control={control}
@@ -1913,7 +2040,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Valor Equip. Local</Label>
+                      <Label>Valor Equipamento Local (R$)</Label>
                       <Controller
                         name="valor_equip_local_final"
                         control={control}
@@ -1931,7 +2058,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Homologação</Label>
+                      <Label>Valor da Homologação (R$)</Label>
                       <Controller
                         name="valor_homologacao"
                         control={control}
@@ -1949,7 +2076,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Seguro</Label>
+                      <Label>Seguro do Projeto (R$)</Label>
                       <Controller
                         name="seguro"
                         control={control}
@@ -1967,7 +2094,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Imposto</Label>
+                      <Label>Imposto sobre Venda (R$)</Label>
                       <Controller
                         name="imposto"
                         control={control}
@@ -1985,7 +2112,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Margem Segurança</Label>
+                      <Label>Margem de Segurança (R$)</Label>
                       <Controller
                         name="margem_seguranca"
                         control={control}
@@ -2003,7 +2130,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Custo do Projeto</Label>
+                      <Label>Custo Total do Projeto (R$)</Label>
                       <Controller
                         name="valor_investido"
                         control={control}
@@ -2021,7 +2148,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="lg:col-span-1">
-                      <Label>Lucro Líquido Previsto</Label>
+                      <Label>Lucro Líquido Previsto (R$)</Label>
                       <Controller
                         name="lucro_liquido_previsto"
                         control={control}
@@ -2039,7 +2166,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="lg:col-span-1">
-                      <Label>Preço Final de Venda</Label>
+                      <Label>Preço Final de Venda (R$)</Label>
                       <Controller
                         name="preco_final_venda"
                         control={control}
@@ -2061,11 +2188,16 @@ export default function BudgetManagement() {
                                 const newPrice =
                                   parseCurrencyToNumber(formatted);
                                 if (newPrice > 0) {
-                                  const TAXA_SEGURO = 0.015;
-                                  const TAXA_IMPOSTO = 0.15;
+                                  const seguroPercInput =
+                                    parseCurrencyToNumber(watch("porcentagem_seguro")) || 1;
+                                  const taxaSeguro = seguroPercInput / 100;
+
+                                  const impostoPercInput =
+                                    parseCurrencyToNumber(watch("porcentagem_imposto")) || 8;
+                                  const taxaImposto = impostoPercInput / 100;
 
                                   const seguro = Number(
-                                    (newPrice * TAXA_SEGURO).toFixed(2),
+                                    (newPrice * taxaSeguro).toFixed(2),
                                   );
                                   const kitLicenciado = parseCurrencyToNumber(
                                     watch("valor_kit_final") || "0",
@@ -2073,12 +2205,17 @@ export default function BudgetManagement() {
                                   const imposto = Number(
                                     (
                                       Math.max(newPrice - kitLicenciado, 0) *
-                                      TAXA_IMPOSTO
+                                      taxaImposto
                                     ).toFixed(2),
                                   );
                                   const margemSeguranca = parseCurrencyToNumber(
                                     watch("margem_seguranca") || "0",
                                   );
+                                  const custoKm =
+                                    (parseInt(watch("km") || "0") || 0) *
+                                    parseCurrencyToNumber(
+                                      watch("custo_km") || "0",
+                                    );
                                   const custoDireto =
                                     kitLicenciado +
                                     parseCurrencyToNumber(
@@ -2089,7 +2226,8 @@ export default function BudgetManagement() {
                                     ) +
                                     parseCurrencyToNumber(
                                       watch("valor_homologacao") || "0",
-                                    );
+                                    ) +
+                                    custoKm;
                                   const custoProjeto = Number(
                                     (
                                       custoDireto +
@@ -2183,7 +2321,7 @@ export default function BudgetManagement() {
                 {isSectionComposicaoOpen && (
                   <div className="grid grid-cols-1 gap-4 animate-slideDown">
                     <div>
-                      <Label>Composição 1</Label>
+                      <Label>Item 1 - Painéis Solares</Label>
                       <Controller
                         name="composicao_1"
                         control={control}
@@ -2191,7 +2329,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Composição 2</Label>
+                      <Label>Item 2 - Inversor Solar</Label>
                       <Controller
                         name="composicao_2"
                         control={control}
@@ -2199,7 +2337,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Composição 3</Label>
+                      <Label>Item 3 - Estrutura de Fixação</Label>
                       <Controller
                         name="composicao_3"
                         control={control}
@@ -2207,7 +2345,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Composição 4</Label>
+                      <Label>Item 4 - Cabos e Conectores</Label>
                       <Controller
                         name="composicao_4"
                         control={control}
@@ -2215,7 +2353,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Composição 5</Label>
+                      <Label>Item 5 - Proteções Elétricas</Label>
                       <Controller
                         name="composicao_5"
                         control={control}
@@ -2286,7 +2424,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-1">
-                      <Label>Garantia Instalação</Label>
+                      <Label>Garantia de Instalação</Label>
                       <Controller
                         name="garantia_instalacao"
                         control={control}
@@ -2360,7 +2498,7 @@ export default function BudgetManagement() {
                 {isSectionCaracteristicaOpen && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3 animate-slideDown">
                     <div className="md:col-span-1">
-                      <Label>Característica da Estrutura 1</Label>
+                      <Label>Característica 1</Label>
                       <Controller
                         name="caracteristica_estrutura_1"
                         control={control}
@@ -2368,7 +2506,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-1">
-                      <Label>Característica da Estrutura 2</Label>
+                      <Label>Característica 2</Label>
                       <Controller
                         name="caracteristica_estrutura_2"
                         control={control}
@@ -2376,7 +2514,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-1">
-                      <Label>Característica da Estrutura 3</Label>
+                      <Label>Característica 3</Label>
                       <Controller
                         name="caracteristica_estrutura_3"
                         control={control}
@@ -2384,7 +2522,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-1">
-                      <Label>Característica da Estrutura 4</Label>
+                      <Label>Característica 4</Label>
                       <Controller
                         name="caracteristica_estrutura_4"
                         control={control}
@@ -2392,7 +2530,7 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label>Característica da Estrutura 5</Label>
+                      <Label>Característica 5</Label>
                       <Controller
                         name="caracteristica_estrutura_5"
                         control={control}

@@ -60,7 +60,7 @@ export default function NewBudget() {
       observacao: "",
       estrutura: "Cerâmico",
       padrao: "Bifásico",
-      consumo_mes: "1.200,00",
+      consumo_mes: "0,00",
       valor_tarifa: "1,00",
     },
   });
@@ -109,6 +109,10 @@ export default function NewBudget() {
       ...data,
       consumo_mes: parseCurrencyToNumber(data.consumo_mes || "0"),
       valor_tarifa: parseCurrencyToNumber(data.valor_tarifa),
+      porcentagem_seguro: 1,
+      porcentagem_imposto: 8,
+      km: 0,
+      custo_km: 0,
     };
 
     try {
@@ -305,7 +309,7 @@ export default function NewBudget() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label required>Consumo Mês (R$)</Label>
+                  <Label required>Consumo Mensal (R$)</Label>
                   <Controller
                     name="consumo_mes"
                     control={control}
@@ -323,7 +327,7 @@ export default function NewBudget() {
                   />
                 </div>
                 <div>
-                  <Label required>Tarifa (R$)</Label>
+                  <Label required>Tarifa de Energia (R$)</Label>
                   <Controller
                     name="valor_tarifa"
                     control={control}
