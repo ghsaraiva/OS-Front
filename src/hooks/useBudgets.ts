@@ -42,6 +42,7 @@ export interface Orcamento {
   valor_homologacao?: number;
   km?: number;
   custo_km?: number;
+  valor_total_km?: number;
   porcentagem_imposto?: number;
   porcentagem_seguro?: number;
 

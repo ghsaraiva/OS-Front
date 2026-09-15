@@ -718,13 +718,21 @@ export default function BudgetDetails() {
                             {formatCurrency(orcamento.valor_homologacao)}
                           </td>
                         </tr>
-                        {Boolean(orcamento.km && orcamento.km > 0 && orcamento.custo_km && orcamento.custo_km > 0) && (
+                        {Boolean(
+                          (orcamento.km && orcamento.km > 0) ||
+                          (orcamento.custo_km && orcamento.custo_km > 0) ||
+                          (orcamento.valor_total_km && orcamento.valor_total_km > 0)
+                        ) && (
                           <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
                             <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
-                              Deslocamento ({orcamento.km} km × {formatCurrency(orcamento.custo_km)})
+                              Deslocamento ({orcamento.km || 0} km × {formatCurrency(orcamento.custo_km || 0)})
                             </td>
                             <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
-                              {formatCurrency((orcamento.km || 0) * (orcamento.custo_km || 0))}
+                              {formatCurrency(
+                                orcamento.valor_total_km !== undefined && orcamento.valor_total_km !== null
+                                  ? orcamento.valor_total_km
+                                  : (orcamento.km || 0) * (orcamento.custo_km || 0)
+                              )}
                             </td>
                           </tr>
                         )}

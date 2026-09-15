@@ -155,6 +155,7 @@ export default function BudgetManagement() {
       equipamento_local: "60,00",
       km: "0",
       custo_km: "0,00",
+      custo_km_total: "0,00",
       porcentagem_seguro: "1,00",
       porcentagem_imposto: "8,00",
       lucro_liquido_perc: "20,00",
@@ -704,6 +705,7 @@ export default function BudgetManagement() {
             if (data.valorHomologacaoCalculado) {
               setValue("valor_homologacao", formatCurrency(data.valorHomologacaoCalculado));
             }
+            setValue("custo_km_total", formatCurrency(data.custoKmTotal || 0));
             setValue(
               "valor_mao_obra_final",
               formatCurrency(data.valorMaoDeObraTotal || 0),
@@ -759,6 +761,13 @@ export default function BudgetManagement() {
     isDirty,
   ]);
 
+  // Atualização imediata em tempo real do Custo de Deslocamento (KM Total)
+  useEffect(() => {
+    const kmNum = parseInt(watchedKm || "0") || 0;
+    const custoKmNum = parseCurrencyToNumber(watchedCustoKm || "0");
+    setValue("custo_km_total", formatCurrency(kmNum * custoKmNum));
+  }, [watchedKm, watchedCustoKm, setValue, formatCurrency]);
+
   // Selecionar orçamento
   const handleSelectOrcamento = useCallback(
     (orcamento: Orcamento) => {
@@ -811,33 +820,33 @@ export default function BudgetManagement() {
 
       const seguroHistorico =
         orcamento.porcentagem_seguro !== undefined &&
-        orcamento.porcentagem_seguro !== null
+          orcamento.porcentagem_seguro !== null
           ? orcamento.porcentagem_seguro
           : orcamento.seguro && orcamento.preco_final_venda
             ? Number(
-                (
-                  (orcamento.seguro / orcamento.preco_final_venda) *
-                  100
-                ).toFixed(2),
-              )
+              (
+                (orcamento.seguro / orcamento.preco_final_venda) *
+                100
+              ).toFixed(2),
+            )
             : 1;
 
       const impostoHistorico =
         orcamento.porcentagem_imposto !== undefined &&
-        orcamento.porcentagem_imposto !== null
+          orcamento.porcentagem_imposto !== null
           ? orcamento.porcentagem_imposto
           : orcamento.imposto &&
-              orcamento.preco_final_venda &&
-              orcamento.valor_kit_final &&
-              orcamento.preco_final_venda - orcamento.valor_kit_final > 0
+            orcamento.preco_final_venda &&
+            orcamento.valor_kit_final &&
+            orcamento.preco_final_venda - orcamento.valor_kit_final > 0
             ? Number(
-                (
-                  (orcamento.imposto /
-                    (orcamento.preco_final_venda -
-                      orcamento.valor_kit_final)) *
-                  100
-                ).toFixed(2),
-              )
+              (
+                (orcamento.imposto /
+                  (orcamento.preco_final_venda -
+                    orcamento.valor_kit_final)) *
+                100
+              ).toFixed(2),
+            )
             : 8;
 
       reset({
@@ -900,6 +909,11 @@ export default function BudgetManagement() {
         equipamento_local: formatCurrency(orcamento.equipamento_local || 60),
         km: (orcamento.km || 0).toString(),
         custo_km: formatCurrency(orcamento.custo_km || 0),
+        custo_km_total: formatCurrency(
+          orcamento.valor_total_km !== undefined && orcamento.valor_total_km !== null
+            ? orcamento.valor_total_km
+            : (orcamento.km || 0) * (orcamento.custo_km || 0),
+        ),
         porcentagem_seguro: formatPercent(seguroHistorico),
         porcentagem_imposto: formatPercent(impostoHistorico),
         lucro_liquido_perc: (orcamento.lucro_liquido_perc || 20)
@@ -1021,6 +1035,8 @@ export default function BudgetManagement() {
       valorHomologacao: parseCurrencyToNumber(data.valor_homologacao),
       km: parseInt(data.km) || 0,
       custo_km: parseCurrencyToNumber(data.custo_km),
+      valor_total_km:
+        (parseInt(data.km) || 0) * parseCurrencyToNumber(data.custo_km),
       porcentagem_seguro: parseCurrencyToNumber(data.porcentagem_seguro) || 1,
       porcentagem_imposto: parseCurrencyToNumber(data.porcentagem_imposto) || 8,
       porcentagemLucroLiquido: parseFloat(
@@ -1287,10 +1303,10 @@ export default function BudgetManagement() {
                             value={
                               field.value
                                 ? field.value
-                                    .toLowerCase()
-                                    .replace(/(?:^|\s|-)\S/g, (a) =>
-                                      a.toUpperCase(),
-                                    )
+                                  .toLowerCase()
+                                  .replace(/(?:^|\s|-)\S/g, (a) =>
+                                    a.toUpperCase(),
+                                  )
                                 : ""
                             }
                           />
@@ -2076,6 +2092,27 @@ export default function BudgetManagement() {
                       />
                     </div>
                     <div>
+                      <Label>
+                        Custo de Deslocamento (KM Total)
+
+                      </Label>
+                      <Controller
+                        name="custo_km_total"
+                        control={control}
+                        render={({ field }) =>
+                          isSection5Loading ? (
+                            <Skeleton className="h-11 w-full" />
+                          ) : (
+                            <Input
+                              {...field}
+                              readOnly
+                              className="bg-gray-50 dark:bg-white/5 font-medium"
+                            />
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
                       <Label>Seguro do Projeto (R$)</Label>
                       <Controller
                         name="seguro"
@@ -2172,7 +2209,7 @@ export default function BudgetManagement() {
                         control={control}
                         render={({ field }) =>
                           isSection5Loading &&
-                          document.activeElement?.getAttribute("name") !==
+                            document.activeElement?.getAttribute("name") !==
                             "preco_final_venda" ? (
                             <Skeleton className="h-11 w-full" />
                           ) : (
@@ -2196,26 +2233,33 @@ export default function BudgetManagement() {
                                     parseCurrencyToNumber(watch("porcentagem_imposto")) || 8;
                                   const taxaImposto = impostoPercInput / 100;
 
+                                  const custoKm =
+                                    (parseInt(watch("km") || "0") || 0) *
+                                    parseCurrencyToNumber(
+                                      watch("custo_km") || "0",
+                                    );
+                                  setValue(
+                                    "custo_km_total",
+                                    formatCurrency(custoKm),
+                                  );
+
+                                  const precoBaseSistema = Math.max(newPrice - custoKm, 0);
+
                                   const seguro = Number(
-                                    (newPrice * taxaSeguro).toFixed(2),
+                                    (precoBaseSistema * taxaSeguro).toFixed(2),
                                   );
                                   const kitLicenciado = parseCurrencyToNumber(
                                     watch("valor_kit_final") || "0",
                                   );
                                   const imposto = Number(
                                     (
-                                      Math.max(newPrice - kitLicenciado, 0) *
+                                      Math.max(precoBaseSistema - kitLicenciado, 0) *
                                       taxaImposto
                                     ).toFixed(2),
                                   );
                                   const margemSeguranca = parseCurrencyToNumber(
                                     watch("margem_seguranca") || "0",
                                   );
-                                  const custoKm =
-                                    (parseInt(watch("km") || "0") || 0) *
-                                    parseCurrencyToNumber(
-                                      watch("custo_km") || "0",
-                                    );
                                   const custoDireto =
                                     kitLicenciado +
                                     parseCurrencyToNumber(
@@ -2241,8 +2285,9 @@ export default function BudgetManagement() {
                                   );
                                   const lucroLiquidoPerc = Number(
                                     (
-                                      (lucroLiquidoPrevisto / newPrice) *
-                                      100
+                                      precoBaseSistema > 0
+                                        ? (lucroLiquidoPrevisto / precoBaseSistema) * 100
+                                        : 0
                                     ).toFixed(2),
                                   );
 
