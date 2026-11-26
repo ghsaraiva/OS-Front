@@ -45,9 +45,12 @@ export interface Orcamento {
   valor_total_km?: number;
   porcentagem_imposto?: number;
   porcentagem_seguro?: number;
+  porcentagem_margem_seguranca?: number;
 
   // Retornos de Cálculo
   valor_kit_final?: number;
+  // Só fora do admin: kit licenciado + margem de segurança
+  valor_kit_gerador?: number;
   lucro_equipamento?: number;
   valor_mao_obra_final?: number;
   valor_equip_local_final?: number;
@@ -158,6 +161,30 @@ export const useBudgets = () => {
     }
   };
 
+  const updateSolicitacao = async (
+    id: string,
+    formData: Record<string, unknown>,
+  ): Promise<
+    { success: true; data: Orcamento } | { success: false; error: string }
+  > => {
+    try {
+      const response = await api.patch<Orcamento>(`/budgets/${id}/solicitacao`, formData);
+      await fetchOrcamentos();
+      return { success: true, data: response.data };
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        return {
+          success: false,
+          error: err.response?.data?.error || err.message,
+        };
+      }
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Erro ao atualizar a solicitação",
+      };
+    }
+  };
+
   const getOrcamentoById = async (
     id: string,
   ): Promise<
@@ -193,6 +220,7 @@ export const useBudgets = () => {
     error,
     fetchOrcamentos,
     createInitialBudget,
+    updateSolicitacao,
     getOrcamentoById,
   };
 };

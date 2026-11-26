@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { UserRecord } from '../lib/pocketbase';
 import api from '../services/api';
+import { useAppStore } from '../store/useAppStore';
 import axios from 'axios';
 
 export const useUsers = () => {
@@ -29,7 +30,7 @@ export const useUsers = () => {
     password: string, 
     passwordConfirm: string, 
     name: string, 
-    tipo_acesso: 'admin' | 'vendedor'
+    tipo_acesso: 'admin' | 'vendedor' | 'associado'
   ) => {
     try {
       setLoading(true);
@@ -45,7 +46,8 @@ export const useUsers = () => {
 
       await api.post('/users', data);
 
-      await fetchUsers();
+      // A tela de usuários lê a lista da store; não depender só do realtime para atualizá-la
+      await Promise.all([fetchUsers(), useAppStore.getState().fetchUsers()]);
       return { success: true };
     } catch (err: unknown) {
       let msg = "Erro desconhecido";

@@ -7,7 +7,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  tipo_acesso: 'admin' | 'vendedor';
+  tipo_acesso: 'admin' | 'vendedor' | 'associado';
   avatar?: string;
   created?: string;
 }
@@ -40,6 +40,7 @@ interface AppState {
   isLoading: boolean;
   error: string | null;
   isSubscribed: boolean;
+  loadedForUserId: string | null;
 
   // Actions
   initApp: () => Promise<void>;
@@ -50,6 +51,32 @@ interface AppState {
   fetchUsers: () => Promise<void>;
 }
 
+// Como manter a lista atualizada para o usuário logado; trocado a cada initApp.
+let pararAtualizacao: (() => void) | null = null;
+
+// Só o admin acessa a coleção orcamentos direto no PocketBase, então só ele recebe realtime.
+function assinarRealtime(get: () => AppState) {
+  pb.collection('orcamentos').subscribe('*', () => get().fetchBudgets());
+  pb.collection('users').subscribe('*', () => get().fetchUsers());
+  return () => {
+    pb.collection('orcamentos').unsubscribe('*').catch(() => {});
+    pb.collection('users').unsubscribe('*').catch(() => {});
+  };
+}
+
+// Associado e vendedor leem pelo backend: recarrega ao voltar para a aba e a cada minuto.
+function recarregarPeriodicamente(get: () => AppState) {
+  const recarregar = () => {
+    if (document.visibilityState === 'visible') get().fetchBudgets();
+  };
+  const intervalo = window.setInterval(recarregar, 60_000);
+  document.addEventListener('visibilitychange', recarregar);
+  return () => {
+    window.clearInterval(intervalo);
+    document.removeEventListener('visibilitychange', recarregar);
+  };
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   users: [],
   budgets: [],
@@ -57,12 +84,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: false,
   error: null,
   isSubscribed: false,
+  loadedForUserId: null,
 
   initApp: async () => {
-    // Prevent multiple initializations/subscriptions
-    if (get().isSubscribed) return;
+    // Carrega uma vez por usuário logado. Ao trocar de usuário na mesma aba (sair e entrar com outro),
+    // os dados do anterior são descartados: o admin precisa da lista de usuários e o
+    // associado/vendedor não pode continuar vendo os orçamentos carregados para o admin.
+    const userId = pb.authStore.model?.id ?? null;
+    if (get().loadedForUserId === userId) return;
 
-    set({ isLoading: true, error: null });
+    pararAtualizacao?.();
+    pararAtualizacao = null;
+
+    set({ users: [], budgets: [], isLoading: true, error: null, isSubscribed: false, loadedForUserId: userId });
     try {
       const isAdmin = pb.authStore.model?.tipo_acesso === 'admin';
 
@@ -72,20 +106,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         : Promise.resolve([] as User[]);
 
       const [users, budgets] = await Promise.all([usersPromise, budgetsPromise]);
+      // Outro usuário entrou enquanto carregava: descarta este resultado
+      if (get().loadedForUserId !== userId) return;
 
       set({ users, budgets, cities: [], isLoading: false, isSubscribed: true });
 
-      // Configurar Realtime Subscriptions
-      pb.collection('orcamentos').subscribe('*', function () {
-        get().fetchBudgets();
-      });
-
-      pb.collection('users').subscribe('*', function () {
-        get().fetchUsers();
-      });
+      pararAtualizacao = isAdmin ? assinarRealtime(get) : recarregarPeriodicamente(get);
 
     } catch (err: unknown) {
-      set({ error: err instanceof Error ? err.message : 'Erro desconhecido', isLoading: false });
+      // Libera uma nova tentativa na próxima chamada
+      set({ error: err instanceof Error ? err.message : 'Erro desconhecido', isLoading: false, loadedForUserId: null });
     }
   },
 

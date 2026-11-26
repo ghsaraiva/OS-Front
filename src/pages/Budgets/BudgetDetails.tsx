@@ -27,12 +27,18 @@ import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { PdfPreviewModal } from "../../components/ui/modal/PdfPreviewModal";
+import EditarCustosAssociadoModal from "../../components/budgets/EditarCustosAssociadoModal";
+import { formatarPorcentagem, resolverPorcentagem } from "../../utils/budgetMath";
 
 export default function BudgetDetails() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isAssociado } = useAuth();
   const { id } = useParams<{ id: string }>();
-  const { budgets, isLoading, updateBudgetInStore } = useAppStore();
+  const { budgets, users, isLoading, updateBudgetInStore } = useAppStore();
   const [orcamento, setOrcamento] = useState<Orcamento | null>(null);
+
+  const isOrcamentoDeAssociado =
+    !!orcamento &&
+    users.find((u) => u.id === orcamento.user_id)?.tipo_acesso === "associado";
 
   const { addToast } = useToast();
   const [isEditingPrice, setIsEditingPrice] = useState(false);
@@ -42,6 +48,7 @@ export default function BudgetDetails() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
+  const [isCustosModalOpen, setIsCustosModalOpen] = useState(false);
 
   useEffect(() => {
     if (id && budgets.length > 0) {
@@ -100,7 +107,9 @@ export default function BudgetDetails() {
       addToast(
         "success",
         "Preço Atualizado",
-        "O preço de venda e todos os fatiamentos foram recalculados e atualizados!",
+        isAssociado
+          ? "Preço salvo. Seu lucro foi recalculado; os demais valores não mudam."
+          : "O preço de venda e todos os fatiamentos foram recalculados e atualizados!",
       );
       setIsEditingPrice(false);
     } catch (err) {
@@ -159,7 +168,7 @@ export default function BudgetDetails() {
           Orçamento não encontrado.
         </p>
         <Link
-          to={isAdmin ? "/orcamentos/todos" : "/"}
+          to={isAdmin || isAssociado ? "/orcamentos/todos" : "/"}
           className="text-brand-500 hover:underline flex items-center gap-2"
         >
           <ArrowLeft className="size-4" /> Voltar
@@ -205,14 +214,14 @@ export default function BudgetDetails() {
         </p>
         <div className="flex gap-4 mt-2">
           <Link
-            to={isAdmin ? "/orcamentos/todos" : "/"}
+            to={isAdmin || isAssociado ? "/orcamentos/todos" : "/"}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="size-4" /> Voltar para o Início
           </Link>
           {isAdmin && (
             <Link
-              to="/orcamentos/gerenciamento"
+              to={`/orcamentos/gerenciamento?id=${orcamento.id}`}
               className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
             >
               Ir para Refinamento Gerencial
@@ -222,6 +231,85 @@ export default function BudgetDetails() {
       </div>
     );
   }
+
+  const lucroKit =
+    orcamento.lucro_equipamento ??
+    Math.max((orcamento.valor_kit_final || 0) - (orcamento.valor_kit || 0), 0);
+
+  // Admin não edita o preço de orçamento de associado: quem define é o próprio associado
+  const renderPrecoVenda = (podeEditar: boolean, nota: string) => (
+    <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500 text-gray-900 shadow-lg shadow-brand-500/20">
+          <DollarSign className="size-6" />
+        </div>
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+            Preço de Venda Sugerido
+          </p>
+          {podeEditar && isEditingPrice ? (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xl font-bold text-gray-800 dark:text-white/90">
+                R$
+              </span>
+              <input
+                type="text"
+                value={tempPrice}
+                onChange={(e) => setTempPrice(formatInputCurrency(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSavePrice();
+                  else if (e.key === "Escape") setIsEditingPrice(false);
+                }}
+                disabled={isSavingPrice}
+                className="w-40 px-3 py-1 text-lg font-bold text-gray-800 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                autoFocus
+              />
+              <button
+                onClick={handleSavePrice}
+                disabled={isSavingPrice}
+                className="p-1.5 bg-brand-500 text-gray-900 rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                title="Salvar"
+              >
+                <Check className="size-5" />
+              </button>
+              <button
+                onClick={() => setIsEditingPrice(false)}
+                disabled={isSavingPrice}
+                className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                title="Cancelar"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <p className="text-3xl font-black text-gray-800 dark:text-white/90">
+                {formatCurrency(orcamento.preco_final_venda)}
+              </p>
+              {podeEditar && (
+                <button
+                  onClick={() => {
+                    setTempPrice(formatInputCurrency(orcamento.preco_final_venda || 0));
+                    setIsEditingPrice(true);
+                  }}
+                  className="p-1 text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 print:hidden"
+                  title="Editar Preço"
+                >
+                  <Edit2 className="size-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {!podeEditar && (
+            <p className="text-[10px] text-gray-400">Definido pelo associado</p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col items-end">
+        <p className="text-[10px] text-gray-400 italic">{nota}</p>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -235,11 +323,11 @@ export default function BudgetDetails() {
         {/* Header de Ações - Escondido na Impressão */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <Link
-            to={isAdmin ? "/orcamentos/todos" : "/"}
+            to={isAdmin || isAssociado ? "/orcamentos/todos" : "/"}
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <ArrowLeft className="size-4" />
-            Voltar para {isAdmin ? "Listagem" : "Início"}
+            Voltar para {isAdmin || isAssociado ? "Listagem" : "Início"}
           </Link>
           <div className="flex flex-wrap gap-3">
             {isAdmin && orcamento && (
@@ -253,8 +341,13 @@ export default function BudgetDetails() {
             )}
             <button
               onClick={handleGeneratePDF}
-              disabled={isGeneratingPdf}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-brand-600 shadow-theme-xs transition-colors disabled:opacity-70"
+              disabled={isGeneratingPdf || !orcamento?.preco_final_venda || orcamento.preco_final_venda <= 0}
+              title={
+                !orcamento?.preco_final_venda || orcamento.preco_final_venda <= 0
+                  ? "Aguardando precificação do kit pela administração"
+                  : "Gerar proposta em PDF"
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-brand-600 shadow-theme-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGeneratingPdf ? (
                 <div className="size-4 animate-spin rounded-full border-2 border-gray-900 border-t-transparent" />
@@ -368,7 +461,9 @@ export default function BudgetDetails() {
                     Responsável
                   </p>
                   <p className="text-sm text-gray-800 dark:text-white/90">
-                    {orcamento.expand?.user_id?.name || "Sistema"}
+                    {orcamento.expand?.user_id?.name ||
+                      (orcamento.user_id === user?.id ? user?.name : undefined) ||
+                      "Sistema"}
                   </p>
                 </div>
               </div>
@@ -729,13 +824,26 @@ export default function BudgetDetails() {
                             </td>
                             <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
                               {formatCurrency(
-                                orcamento.valor_total_km !== undefined && orcamento.valor_total_km !== null
-                                  ? orcamento.valor_total_km
-                                  : (orcamento.km || 0) * (orcamento.custo_km || 0)
+                                orcamento.valor_total_km || (orcamento.km || 0) * (orcamento.custo_km || 0)
                               )}
                             </td>
                           </tr>
                         )}
+                        {/* Também compõem o custo do projeto, então entram na tabela para a soma fechar */}
+                        {[
+                          { label: "Margem de Segurança", valor: orcamento.margem_seguranca },
+                          { label: `Impostos (${formatarPorcentagem(resolverPorcentagem(orcamento, "imposto"))}%)`, valor: orcamento.imposto },
+                          { label: `Seguro (${formatarPorcentagem(resolverPorcentagem(orcamento, "seguro"))}%)`, valor: orcamento.seguro },
+                        ].map(({ label, valor }) => (
+                          <tr key={label} className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                            <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                              {label}
+                            </td>
+                            <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                              {formatCurrency(valor)}
+                            </td>
+                          </tr>
+                        ))}
                         <tr className="bg-brand-50/50 dark:bg-brand-500/5 transition-colors border-t border-brand-100 dark:border-brand-500/20">
                           <td className="px-5 py-4 text-theme-sm font-bold text-brand-600 dark:text-brand-400 uppercase">
                             CUSTO TOTAL DO PROJETO
@@ -750,29 +858,211 @@ export default function BudgetDetails() {
 
                   {/* Impostos e Lucros */}
                   <div className="space-y-4">
+                    {isOrcamentoDeAssociado ? (
+                      <>
+                        {/* Fatiamento da Sofia: kit e lucro do kit (a margem de segurança é do associado) */}
+                        <div className="p-4 rounded-xl border border-brand-100 dark:border-brand-500/20 space-y-3">
+                          <h5 className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-widest flex items-center gap-1">
+                            <ShieldCheck className="size-3" /> Fatiamento do Admin
+                          </h5>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Kit sem lucro:</span>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">
+                              {formatCurrency(orcamento.valor_kit)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Lucro sobre o kit ({formatarPorcentagem(orcamento.porcentagem_kit)}%):</span>
+                            <span className="font-medium text-brand-600 dark:text-brand-400">
+                              {formatCurrency(lucroKit)}
+                            </span>
+                          </div>
+                          <div className="pt-3 border-t border-brand-100 dark:border-brand-500/20">
+                            <p className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-widest">
+                              Meu Lucro / Lucro do Kit
+                            </p>
+                            <p className="text-xl font-bold text-brand-700 dark:text-brand-300">
+                              {formatCurrency(lucroKit)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Fatiamento do associado: o que ele definiu de imposto, seguro, margem de segurança e lucro */}
+                        <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 space-y-3">
+                          <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                            <ShieldCheck className="size-3" /> Fatiamento do Associado
+                          </h5>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Impostos ({formatarPorcentagem(resolverPorcentagem(orcamento, "imposto"))}%):</span>
+                            <span className="font-medium text-red-500">
+                              {formatCurrency(orcamento.imposto)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Seguro ({formatarPorcentagem(resolverPorcentagem(orcamento, "seguro"))}%):</span>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">
+                              {formatCurrency(orcamento.seguro)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Margem Segurança ({formatarPorcentagem(resolverPorcentagem(orcamento, "margem"))}%):</span>
+                            <span className="font-medium text-orange-500">
+                              {formatCurrency(orcamento.margem_seguranca)}
+                            </span>
+                          </div>
+                          <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
+                            <p className="text-[10px] font-bold text-success-600 uppercase tracking-widest">
+                              Lucro do Associado ({formatarPorcentagem(orcamento.lucro_liquido_perc)}%)
+                            </p>
+                            <p className="text-xl font-bold text-success-700 dark:text-success-400">
+                              {formatCurrency(orcamento.lucro_liquido_previsto)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 space-y-3">
+                          <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                            <ShieldCheck className="size-3" /> Fatiamento
+                          </h5>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">
+                              Impostos ({formatarPorcentagem(resolverPorcentagem(orcamento, "imposto"))}%):
+                            </span>
+                            <span className="font-medium text-red-500">
+                              {formatCurrency(orcamento.imposto)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">
+                              Seguro ({formatarPorcentagem(resolverPorcentagem(orcamento, "seguro"))}%):
+                            </span>
+                            <span className="font-medium text-gray-600 dark:text-gray-400">
+                              {formatCurrency(orcamento.seguro)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">
+                              Margem Segurança ({formatarPorcentagem(resolverPorcentagem(orcamento, "margem"))}%):
+                            </span>
+                            <span className="font-medium text-orange-500">
+                              {formatCurrency(orcamento.margem_seguranca)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-success-50 dark:bg-success-500/10 border border-success-100 dark:border-success-500/20">
+                          <p className="text-[10px] font-bold text-success-600 uppercase tracking-widest">
+                            Lucro Previsto ({formatarPorcentagem(orcamento.lucro_liquido_perc)}%)
+                          </p>
+                          <p className="text-xl font-bold text-success-700 dark:text-success-400">
+                            {formatCurrency(orcamento.lucro_liquido_previsto)}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {renderPrecoVenda(!isOrcamentoDeAssociado, "Válido por 7 dias conforme cotação do kit.")}
+              </ComponentCard>
+            ) : isAssociado ? (
+              /* CARD DE CUSTOS OPERACIONAIS E MARGEM EXCLUSIVO PARA ASSOCIADO */
+              <ComponentCard
+                title={
+                  <div className="flex items-center justify-between gap-2 text-gray-800 dark:text-white/90">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="size-5 text-brand-500" />
+                      <span>Custos Operacionais e Composição Comercial</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustosModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05] transition-colors"
+                    >
+                      <Edit2 className="size-3.5" />
+                      Editar custos
+                    </button>
+                  </div>
+                }
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Custos Operacionais */}
+                  <div className="md:col-span-2">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-white/[0.05] bg-gray-50/50 dark:bg-white/[0.02]">
+                          <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                            Item Operacional
+                          </th>
+                          <th className="px-5 py-3 text-end text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                            Valor
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Equipamentos (Kit Gerador)
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_kit_gerador ?? orcamento.valor_kit_final)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Mão de Obra Total
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_mao_obra_final)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Equipamento Local Total
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_equip_local_final)}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                          <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Homologação
+                          </td>
+                          <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                            {formatCurrency(orcamento.valor_homologacao)}
+                          </td>
+                        </tr>
+                        {Boolean(
+                          (orcamento.km && orcamento.km > 0) ||
+                          (orcamento.custo_km && orcamento.custo_km > 0) ||
+                          (orcamento.valor_total_km && orcamento.valor_total_km > 0)
+                        ) && (
+                          <tr className="hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors">
+                            <td className="px-5 py-4 text-theme-sm text-gray-600 dark:text-gray-400 font-medium">
+                              Deslocamento ({orcamento.km || 0} km × {formatCurrency(orcamento.custo_km || 0)})
+                            </td>
+                            <td className="px-5 py-4 text-end text-theme-sm font-bold text-gray-800 dark:text-white/90">
+                              {formatCurrency(
+                                orcamento.valor_total_km || (orcamento.km || 0) * (orcamento.custo_km || 0)
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Impostos e Lucros */}
+                  <div className="space-y-4">
                     <div className="p-4 rounded-xl border border-gray-100 dark:border-gray-800 space-y-3">
                       <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
                         <ShieldCheck className="size-3" /> Fatiamento
                       </h5>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">
-                          Impostos (
-                          {orcamento.porcentagem_imposto !== undefined
-                            ? orcamento.porcentagem_imposto
-                            : orcamento.imposto &&
-                                orcamento.preco_final_venda &&
-                                orcamento.valor_kit_final &&
-                                orcamento.preco_final_venda - orcamento.valor_kit_final > 0
-                              ? Number(
-                                  (
-                                    (orcamento.imposto /
-                                      (orcamento.preco_final_venda -
-                                        orcamento.valor_kit_final)) *
-                                    100
-                                  ).toFixed(1),
-                                )
-                              : 8}
-                          %):
+                          Imposto sobre o serviço ({formatarPorcentagem(resolverPorcentagem(orcamento, "imposto"))}%):
                         </span>
                         <span className="font-medium text-red-500">
                           {formatCurrency(orcamento.imposto)}
@@ -780,19 +1070,7 @@ export default function BudgetDetails() {
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">
-                          Seguro (
-                          {orcamento.porcentagem_seguro !== undefined
-                            ? orcamento.porcentagem_seguro
-                            : orcamento.seguro && orcamento.preco_final_venda
-                              ? Number(
-                                  (
-                                    (orcamento.seguro /
-                                      orcamento.preco_final_venda) *
-                                    100
-                                  ).toFixed(1),
-                                )
-                              : 1}
-                          %):
+                          Seguro ({formatarPorcentagem(resolverPorcentagem(orcamento, "seguro"))}%):
                         </span>
                         <span className="font-medium text-gray-600 dark:text-gray-400">
                           {formatCurrency(orcamento.seguro)}
@@ -800,7 +1078,7 @@ export default function BudgetDetails() {
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">
-                          Margem Segurança (3%):
+                          Margem de segurança ({formatarPorcentagem(resolverPorcentagem(orcamento, "margem"))}%):
                         </span>
                         <span className="font-medium text-orange-500">
                           {formatCurrency(orcamento.margem_seguranca)}
@@ -810,7 +1088,7 @@ export default function BudgetDetails() {
 
                     <div className="p-4 rounded-xl bg-success-50 dark:bg-success-500/10 border border-success-100 dark:border-success-500/20">
                       <p className="text-[10px] font-bold text-success-600 uppercase tracking-widest">
-                        Lucro Previsto ({orcamento.lucro_liquido_perc}%)
+                        Lucro Previsto ({formatarPorcentagem(orcamento.lucro_liquido_perc)}%)
                       </p>
                       <p className="text-xl font-bold text-success-700 dark:text-success-400">
                         {formatCurrency(orcamento.lucro_liquido_previsto)}
@@ -819,82 +1097,7 @@ export default function BudgetDetails() {
                   </div>
                 </div>
 
-                {/* Preço de Venda Final com Edição para Admin */}
-                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-500 text-gray-900 shadow-lg shadow-brand-500/20">
-                      <DollarSign className="size-6" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
-                        Preço de Venda Sugerido
-                      </p>
-                      {isEditingPrice ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xl font-bold text-gray-800 dark:text-white/90">
-                            R$
-                          </span>
-                          <input
-                            type="text"
-                            value={tempPrice}
-                            onChange={(e) =>
-                              setTempPrice(formatInputCurrency(e.target.value))
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleSavePrice();
-                              else if (e.key === "Escape")
-                                setIsEditingPrice(false);
-                            }}
-                            disabled={isSavingPrice}
-                            className="w-40 px-3 py-1 text-lg font-bold text-gray-800 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            autoFocus
-                          />
-                          <button
-                            onClick={handleSavePrice}
-                            disabled={isSavingPrice}
-                            className="p-1.5 bg-brand-500 text-gray-900 rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
-                            title="Salvar"
-                          >
-                            <Check className="size-5" />
-                          </button>
-                          <button
-                            onClick={() => setIsEditingPrice(false)}
-                            disabled={isSavingPrice}
-                            className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
-                            title="Cancelar"
-                          >
-                            <X className="size-5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 group">
-                          <p className="text-3xl font-black text-gray-800 dark:text-white/90">
-                            {formatCurrency(orcamento.preco_final_venda)}
-                          </p>
-                          <button
-                            onClick={() => {
-                              setTempPrice(
-                                formatInputCurrency(
-                                  orcamento.preco_final_venda || 0,
-                                ),
-                              );
-                              setIsEditingPrice(true);
-                            }}
-                            className="p-1 text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 print:hidden"
-                            title="Editar Preço"
-                          >
-                            <Edit2 className="size-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <p className="text-[10px] text-gray-400 italic">
-                      Válido por 7 dias conforme cotação do kit.
-                    </p>
-                  </div>
-                </div>
+                {renderPrecoVenda(true, "Proposta comercial válida por 7 dias.")}
               </ComponentCard>
             ) : (
               /* CARD DE VALOR FINAL EXCLUSIVO PARA VENDEDOR (SEM CUSTOS E SEM EDICAO) */
@@ -944,6 +1147,18 @@ export default function BudgetDetails() {
           setOrcamento((prev) => (prev ? { ...prev, email_cliente: newEmail } : null))
         }
       />
+
+      {isAssociado && orcamento && isCustosModalOpen && (
+        <EditarCustosAssociadoModal
+          isOpen={isCustosModalOpen}
+          onClose={() => setIsCustosModalOpen(false)}
+          orcamento={orcamento}
+          onSaved={(atualizado) => {
+            setOrcamento(atualizado);
+            updateBudgetInStore(atualizado);
+          }}
+        />
+      )}
     </>
   );
 }

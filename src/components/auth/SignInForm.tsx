@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
@@ -16,7 +16,14 @@ export default function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const mensagemSucesso = (location.state as any)?.mensagem ?? null;
+  const state = location.state as { mensagem?: string; encerrarSessao?: boolean } | null;
+  const mensagemSucesso = state?.mensagem ?? null;
+  const encerrarSessao = state?.encerrarSessao === true;
+
+  // Vindo da troca de senha do primeiro acesso: o token antigo não vale mais
+  useEffect(() => {
+    if (encerrarSessao) pb.authStore.clear();
+  }, [encerrarSessao]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

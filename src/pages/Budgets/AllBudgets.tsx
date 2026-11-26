@@ -74,9 +74,11 @@ export default function AllBudgets() {
                   <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
                     Proposta
                   </th>
-                  <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
-                    Ações
-                  </th>
+                  {isAdmin && (
+                    <th className="px-5 py-3 text-start text-theme-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                      Ações
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -101,14 +103,16 @@ export default function AllBudgets() {
                       <td className="px-5 py-4">
                         <Skeleton className="h-8 w-24 rounded-lg" />
                       </td>
-                      <td className="px-5 py-4">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                      </td>
+                      {isAdmin && (
+                        <td className="px-5 py-4">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : orcamentos.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-4 text-center text-gray-500">
+                    <td colSpan={isAdmin ? 7 : 6} className="px-5 py-4 text-center text-gray-500">
                       Nenhum orçamento encontrado.
                     </td>
                   </tr>
@@ -151,7 +155,11 @@ export default function AllBudgets() {
                               <button 
                                 disabled 
                                 className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-gray-400 bg-gray-50 border border-gray-200/50 rounded-l-lg cursor-not-allowed dark:bg-white/[0.02] dark:border-white/[0.05] dark:text-gray-500" 
-                                title="Preencha os dados gerenciais antes de visualizar/imprimir"
+                                title={
+                                  isAdmin
+                                    ? "Preencha os dados gerenciais antes de visualizar/imprimir"
+                                    : "Aguardando precificação do kit pela administração"
+                                }
                               >
                                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -170,39 +178,41 @@ export default function AllBudgets() {
                             </div>
                           )}
                         </td>
-                        <td className="px-5 py-4 text-theme-sm">
-                          <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(activeMenuId === o.id ? null : o.id);
-                              }}
-                              className="p-1.5 hover:bg-gray-100 rounded-full dark:hover:bg-white/[0.08] transition-colors"
-                            >
-                              <svg className="size-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                              </svg>
-                            </button>
-
-                            {activeMenuId === o.id && (
-                              <div 
-                                className={`absolute right-0 z-50 w-28 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg py-1 animate-fadeIn ${isLastRow ? "bottom-full mb-1" : "top-full mt-1"}`}
-                                onClick={(e) => e.stopPropagation()}
+                        {isAdmin && (
+                          <td className="px-5 py-4 text-theme-sm">
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(activeMenuId === o.id ? null : o.id);
+                                }}
+                                className="p-1.5 hover:bg-gray-100 rounded-full dark:hover:bg-white/[0.08] transition-colors"
                               >
-                                <Link
-                                  to={`/orcamentos/gerenciamento?id=${o.id}`}
-                                  onClick={() => setActiveMenuId(null)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full text-left font-medium"
+                                <svg className="size-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                </svg>
+                              </button>
+
+                              {activeMenuId === o.id && (
+                                <div 
+                                  className={`absolute right-0 z-50 w-28 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg py-1 animate-fadeIn ${isLastRow ? "bottom-full mb-1" : "top-full mt-1"}`}
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  Refinar
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        </td>
+                                  <Link
+                                    to={`/orcamentos/gerenciamento?id=${o.id}`}
+                                    onClick={() => setActiveMenuId(null)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full text-left font-medium"
+                                  >
+                                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Refinar
+                                  </Link>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })

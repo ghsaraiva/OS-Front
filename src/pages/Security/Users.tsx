@@ -31,7 +31,7 @@ const userSchema = z.object({
   confirmPassword: z
     .string()
     .min(1, "A confirmação de senha é obrigatória"),
-  tipo_acesso: z.enum(['admin', 'vendedor']),
+  tipo_acesso: z.enum(['admin', 'vendedor', 'associado']),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -49,7 +49,7 @@ export default function Users() {
     email: '',
     password: '',
     confirmPassword: '',
-    tipo_acesso: 'vendedor' as 'admin' | 'vendedor'
+    tipo_acesso: 'vendedor' as 'admin' | 'vendedor' | 'associado'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -174,6 +174,7 @@ export default function Users() {
                 <Select
                   options={[
                     { value: 'admin', label: 'Administrador' },
+                    { value: 'associado', label: 'Associado' },
                     { value: 'vendedor', label: 'Vendedor' }
                   ]}
                   defaultValue={formData.tipo_acesso}
@@ -282,8 +283,11 @@ export default function Users() {
                         {u.email}
                       </td>
                       <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
-                        <Badge size="sm" color={u.tipo_acesso === 'admin' ? 'success' : 'primary'}>
-                          {u.tipo_acesso === 'admin' ? 'Administrador' : 'Vendedor'}
+                        <Badge 
+                          size="sm" 
+                          color={u.tipo_acesso === 'admin' ? 'success' : u.tipo_acesso === 'associado' ? 'warning' : 'primary'}
+                        >
+                          {u.tipo_acesso === 'admin' ? 'Administrador' : u.tipo_acesso === 'associado' ? 'Associado' : 'Vendedor'}
                         </Badge>
                       </td>
                       <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
