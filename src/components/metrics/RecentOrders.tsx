@@ -183,7 +183,11 @@ export default function RecentOrders() {
                             <button
                               disabled
                               className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-gray-400 bg-gray-50 border border-gray-200/50 rounded-l-lg cursor-not-allowed dark:bg-white/[0.02] dark:border-white/[0.05] dark:text-gray-500"
-                              title="Preencha os dados gerenciais antes de visualizar/imprimir"
+                              title={
+                                isAdmin
+                                  ? "Preencha os dados gerenciais antes de visualizar/imprimir"
+                                  : "Aguardando precificação do kit pela administração"
+                              }
                             >
                               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

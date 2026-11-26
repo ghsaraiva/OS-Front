@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
-import { pb } from '../../lib/pocketbase';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import PageMeta from '../../components/common/PageMeta';
@@ -69,11 +68,13 @@ export default function AlterarSenhaPrimeiroAcesso() {
         passwordConfirm: formData.confirmPassword,
       });
 
-      // Senha alterada com sucesso.
-      // O PocketBase invalida o token ao trocar a senha, então
-      // limpamos a sessão e redirecionamos para o login.
-      pb.authStore.clear();
-      navigate('/signin', { state: { mensagem: 'Senha definida com sucesso! Faça login com sua nova senha.' } });
+      // Senha alterada com sucesso. O PocketBase invalida o token ao trocar a senha,
+      // mas a sessão é encerrada pela tela de login (encerrarSessao): limpar aqui faz a
+      // rota protegida redirecionar antes da navegação e a mensagem se perde.
+      navigate('/login', {
+        replace: true,
+        state: { mensagem: 'Senha definida com sucesso! Faça login com sua nova senha.', encerrarSessao: true },
+      });
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : 'Erro ao alterar senha. Tente novamente.';

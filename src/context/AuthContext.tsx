@@ -5,6 +5,8 @@ interface AuthContextType {
   user: UserRecord | null;
   isValid: boolean;
   isAdmin: boolean;
+  isAssociado: boolean;
+  isVendedor: boolean;
   primeiroAcesso: boolean;
   loading: boolean;
   signOut: () => void;
@@ -18,16 +20,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // PocketBase authStore is already initialized with stored state if present
-    setLoading(false);
+    let isMounted = true;
+
+    const validateAuth = async () => {
+      // Se houver credencial no localStorage, verifica ativamente com o PocketBase
+      if (pb.authStore.isValid && pb.authStore.token) {
+        try {
+          const authData = await pb.collection('users').authRefresh();
+          if (isMounted) {
+            setUser(authData.record as unknown as UserRecord);
+            setIsValid(true);
+          }
+        } catch (err) {
+          console.warn('Sessão expirada ou inválida no PocketBase:', err);
+          pb.authStore.clear();
+          if (isMounted) {
+            setUser(null);
+            setIsValid(false);
+          }
+        }
+      } else {
+        pb.authStore.clear();
+        if (isMounted) {
+          setUser(null);
+          setIsValid(false);
+        }
+      }
+
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
+
+    validateAuth();
 
     // Listen for auth changes (login, logout, refresh)
     const removeListener = pb.authStore.onChange((token, model) => {
-      setUser(model as UserRecord | null);
-      setIsValid(!!token && !!model);
+      if (isMounted) {
+        setUser(model as unknown as UserRecord | null);
+        setIsValid(!!token && !!model);
+      }
     });
 
-    return () => removeListener();
+    return () => {
+      isMounted = false;
+      removeListener();
+    };
   }, []);
 
   const signOut = () => {
@@ -35,10 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAdmin = user?.tipo_acesso === 'admin';
+  const isAssociado = user?.tipo_acesso === 'associado';
+  const isVendedor = user?.tipo_acesso === 'vendedor';
   const primeiroAcesso = user?.primeiro_acesso === true;
 
   return (
-    <AuthContext.Provider value={{ user, isValid, isAdmin, primeiroAcesso, loading, signOut }}>
+    <AuthContext.Provider value={{ user, isValid, isAdmin, isAssociado, isVendedor, primeiroAcesso, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

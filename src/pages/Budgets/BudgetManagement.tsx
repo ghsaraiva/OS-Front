@@ -22,12 +22,13 @@ import AutocompleteCity from "../../components/form/AutocompleteCity";
 import { Modal } from "../../components/ui/modal";
 import UserAvatar from "../../components/common/UserAvatar";
 import FieldTooltip from "../../components/common/FieldTooltip";
-import { formatPhoneMask, EMAIL_PATTERN } from "../../utils/userUtils";
+import { resolverPorcentagem } from "../../utils/budgetMath";
+import { formatPhoneMask, EMAIL_PATTERN, getCollaboratorInfo } from "../../utils/userUtils";
 
 export default function BudgetManagement() {
   const { addToast } = useToast();
-  const { isAdmin } = useAuth();
-  const { budgets, isLoading, fetchBudgets } = useAppStore();
+  const { user, isAdmin } = useAuth();
+  const { budgets, users, isLoading, fetchBudgets } = useAppStore();
   const [searchParams] = useSearchParams();
   const urlOrcamentoId = searchParams.get("id");
 
@@ -60,6 +61,9 @@ export default function BudgetManagement() {
   const [selectedOrcamento, setSelectedOrcamento] = useState<Orcamento | null>(
     null,
   );
+  const isOrcamentoDeAssociado =
+    !!selectedOrcamento &&
+    users.find((u) => u.id === selectedOrcamento.user_id)?.tipo_acesso === "associado";
   const [kwpMinimo, setKwpMinimo] = useState<number | null>(null);
   const [mediaCalc, setMediaCalc] = useState<number | null>(null);
   const [kwpSistema, setKwpSistema] = useState<number | null>(null);
@@ -158,6 +162,7 @@ export default function BudgetManagement() {
       custo_km_total: "0,00",
       porcentagem_seguro: "1,00",
       porcentagem_imposto: "8,00",
+      porcentagem_margem_seguranca: "3,00",
       lucro_liquido_perc: "20,00",
       valor_kit_final: "0,00",
       lucro_equipamento: "0,00",
@@ -249,6 +254,7 @@ export default function BudgetManagement() {
   const watchedCustoKm = watch("custo_km");
   const watchedPorcentagemSeguro = watch("porcentagem_seguro");
   const watchedPorcentagemImposto = watch("porcentagem_imposto");
+  const watchedPorcentagemMargem = watch("porcentagem_margem_seguranca");
   const watchedLucroPerc = watch("lucro_liquido_perc");
   const watchedHomologacao = watch("valor_homologacao");
   const watchedIdCidade = watch("id_cidade");
@@ -309,6 +315,7 @@ export default function BudgetManagement() {
     watchedCustoKm,
     watchedPorcentagemSeguro,
     watchedPorcentagemImposto,
+    watchedPorcentagemMargem,
   ]);
 
   // Watchers for sections 6, 7, 8 completion status
@@ -699,6 +706,7 @@ export default function BudgetManagement() {
             custo_km: parseCurrencyToNumber(watchedCustoKm),
             porcentagem_seguro: parseCurrencyToNumber(watchedPorcentagemSeguro) || 1,
             porcentagem_imposto: parseCurrencyToNumber(watchedPorcentagemImposto) || 8,
+            porcentagem_margem_seguranca: parseCurrencyToNumber(watchedPorcentagemMargem),
           });
           const data = response.data;
           if (data) {
@@ -756,6 +764,7 @@ export default function BudgetManagement() {
     watchedCustoKm,
     watchedPorcentagemSeguro,
     watchedPorcentagemImposto,
+    watchedPorcentagemMargem,
     setValue,
     formatCurrency,
     isDirty,
@@ -775,7 +784,7 @@ export default function BudgetManagement() {
       setKwpMinimo(orcamento.kwp_minimo || 0);
       setKwpSistema(orcamento.kwp_sistema || null);
 
-      const loadedMargin = orcamento.lucro_liquido_perc || 20;
+      const loadedMargin = orcamento.lucro_liquido_perc ?? 20;
       const marginStr = loadedMargin.toFixed(2).replace(".", ",");
       const isBaseOption =
         loadedMargin >= 10 && loadedMargin <= 25 && loadedMargin % 1 === 0;
@@ -818,36 +827,8 @@ export default function BudgetManagement() {
           });
       }
 
-      const seguroHistorico =
-        orcamento.porcentagem_seguro !== undefined &&
-          orcamento.porcentagem_seguro !== null
-          ? orcamento.porcentagem_seguro
-          : orcamento.seguro && orcamento.preco_final_venda
-            ? Number(
-              (
-                (orcamento.seguro / orcamento.preco_final_venda) *
-                100
-              ).toFixed(2),
-            )
-            : 1;
-
-      const impostoHistorico =
-        orcamento.porcentagem_imposto !== undefined &&
-          orcamento.porcentagem_imposto !== null
-          ? orcamento.porcentagem_imposto
-          : orcamento.imposto &&
-            orcamento.preco_final_venda &&
-            orcamento.valor_kit_final &&
-            orcamento.preco_final_venda - orcamento.valor_kit_final > 0
-            ? Number(
-              (
-                (orcamento.imposto /
-                  (orcamento.preco_final_venda -
-                    orcamento.valor_kit_final)) *
-                100
-              ).toFixed(2),
-            )
-            : 8;
+      const seguroHistorico = resolverPorcentagem(orcamento, "seguro");
+      const impostoHistorico = resolverPorcentagem(orcamento, "imposto");
 
       reset({
         nome_cliente: orcamento.nome_cliente || "",
@@ -905,24 +886,26 @@ export default function BudgetManagement() {
 
         valor_kit: formatCurrency(orcamento.valor_kit || 0),
         porcentagem_kit: formatPercent(orcamento.porcentagem_kit || 0),
-        mao_obra: formatCurrency(orcamento.mao_obra || 100),
-        equipamento_local: formatCurrency(orcamento.equipamento_local || 60),
+        mao_obra: formatCurrency(orcamento.mao_obra ?? 100),
+        equipamento_local: formatCurrency(orcamento.equipamento_local ?? 60),
         km: (orcamento.km || 0).toString(),
         custo_km: formatCurrency(orcamento.custo_km || 0),
         custo_km_total: formatCurrency(
-          orcamento.valor_total_km !== undefined && orcamento.valor_total_km !== null
-            ? orcamento.valor_total_km
-            : (orcamento.km || 0) * (orcamento.custo_km || 0),
+          orcamento.valor_total_km || (orcamento.km || 0) * (orcamento.custo_km || 0),
         ),
         porcentagem_seguro: formatPercent(seguroHistorico),
         porcentagem_imposto: formatPercent(impostoHistorico),
-        lucro_liquido_perc: (orcamento.lucro_liquido_perc || 20)
+        porcentagem_margem_seguranca: formatPercent(resolverPorcentagem(orcamento, "margem")),
+        lucro_liquido_perc: (orcamento.lucro_liquido_perc ?? 20)
           .toFixed(2)
           .replace(".", ","),
         valor_homologacao: formatCurrency(orcamento.valor_homologacao || 500),
 
         valor_kit_final: formatCurrency(orcamento.valor_kit_final || 0),
-        lucro_equipamento: formatCurrency(orcamento.lucro_equipamento || 0),
+        lucro_equipamento: formatCurrency(
+          orcamento.lucro_equipamento ??
+            Math.max((orcamento.valor_kit_final || 0) - (orcamento.valor_kit || 0), 0),
+        ),
         valor_mao_obra_final: formatCurrency(
           orcamento.valor_mao_obra_final || 0,
         ),
@@ -993,12 +976,15 @@ export default function BudgetManagement() {
     [formatCurrency, formatPercent, reset],
   );
 
+  // Carrega o orçamento da URL uma única vez por id: a lista é recarregada pelo realtime
+  // sempre que qualquer orçamento muda, e reselecionar apagaria o que o admin está editando.
+  const orcamentoCarregadoDaUrl = useRef<string | null>(null);
   useEffect(() => {
-    if (urlOrcamentoId && budgets.length > 0) {
-      const found = budgets.find((b) => b.id === urlOrcamentoId);
-      if (found) {
-        handleSelectOrcamento(found);
-      }
+    if (!urlOrcamentoId || orcamentoCarregadoDaUrl.current === urlOrcamentoId) return;
+    const found = budgets.find((b) => b.id === urlOrcamentoId);
+    if (found) {
+      orcamentoCarregadoDaUrl.current = urlOrcamentoId;
+      handleSelectOrcamento(found);
     }
   }, [urlOrcamentoId, budgets, handleSelectOrcamento]);
 
@@ -1008,56 +994,57 @@ export default function BudgetManagement() {
 
     const payload: Record<string, any> = {
       orcamentoId: selectedOrcamento.id,
-      nome_cliente: data.nome_cliente,
-      telefone_cliente: data.telefone_cliente,
-      email_cliente: data.email_cliente,
-      id_cidade: data.id_cidade,
-      cidade: data.cidade,
-      estado: data.estado,
-      estrutura: data.estrutura,
-      padrao: data.padrao,
-      consumo_mes: parseCurrencyToNumber(data.consumo_mes),
-      valor_tarifa: parseCurrencyToNumber(data.valor_tarifa),
-      potencia_painel: parseInt(data.potencia_painel),
-      quantidade_paineis: parseInt(data.qtd_paineis),
-      peso_painel: parseFloat(data.peso_painel) || 0,
-      marca_modulo: data.marca_modulo,
-      quantidade_inversores: parseInt(data.qtd_inversores),
+      nome_cliente: data.nome_cliente || selectedOrcamento.nome_cliente,
+      telefone_cliente: data.telefone_cliente ?? selectedOrcamento.telefone_cliente,
+      email_cliente: data.email_cliente ?? selectedOrcamento.email_cliente,
+      id_cidade: data.id_cidade || selectedOrcamento.id_cidade,
+      cidade: data.cidade || selectedOrcamento.cidade,
+      estado: data.estado || selectedOrcamento.estado,
+      estrutura: data.estrutura || selectedOrcamento.estrutura,
+      padrao: data.padrao || selectedOrcamento.padrao,
+      consumo_mes: parseCurrencyToNumber(data.consumo_mes ?? selectedOrcamento.consumo_mes),
+      valor_tarifa: parseCurrencyToNumber(data.valor_tarifa ?? selectedOrcamento.valor_tarifa),
+      potencia_painel: parseInt(data.potencia_painel ?? selectedOrcamento.potencia_painel) || 0,
+      quantidade_paineis: parseInt(data.qtd_paineis ?? selectedOrcamento.qtd_paineis) || 0,
+      peso_painel: parseFloat(data.peso_painel ?? selectedOrcamento.peso_painel) || 0,
+      marca_modulo: data.marca_modulo || selectedOrcamento.marca_painel || (selectedOrcamento as any).marca_modulo || "",
+      quantidade_inversores: parseInt(data.qtd_inversores ?? selectedOrcamento.qtd_inversores) || 0,
       potencia_inversor:
-        parseFloat(data.potencia_inversor?.toString().replace(",", ".")) || 0,
-      modelo_inversor: data.modelo_inversor,
-      marca_inversor: data.marca_inversor,
-      tensao_inversor: data.tensao_inversor,
-      valorKit: parseCurrencyToNumber(data.valor_kit),
-      valorPorcentagem: parseCurrencyToNumber(data.porcentagem_kit),
+        parseFloat((data.potencia_inversor ?? selectedOrcamento.potencia_inversor)?.toString().replace(",", ".")) || 0,
+      modelo_inversor: data.modelo_inversor ?? selectedOrcamento.modelo_inversor ?? "",
+      marca_inversor: data.marca_inversor ?? selectedOrcamento.marca_inversor ?? "",
+      tensao_inversor: data.tensao_inversor ?? selectedOrcamento.tensao_inversor ?? "",
+      valorKit: parseCurrencyToNumber(data.valor_kit ?? selectedOrcamento.valor_kit),
+      valorPorcentagem: parseCurrencyToNumber(data.porcentagem_kit ?? selectedOrcamento.porcentagem_kit),
       valorMaoDeObra: parseCurrencyToNumber(data.mao_obra),
       valorEquipamentoLocal: parseCurrencyToNumber(data.equipamento_local),
-      valorHomologacao: parseCurrencyToNumber(data.valor_homologacao),
+      valorHomologacao: parseCurrencyToNumber(data.valor_homologacao ?? selectedOrcamento.valor_homologacao),
       km: parseInt(data.km) || 0,
       custo_km: parseCurrencyToNumber(data.custo_km),
       valor_total_km:
         (parseInt(data.km) || 0) * parseCurrencyToNumber(data.custo_km),
       porcentagem_seguro: parseCurrencyToNumber(data.porcentagem_seguro) || 1,
       porcentagem_imposto: parseCurrencyToNumber(data.porcentagem_imposto) || 8,
+      porcentagem_margem_seguranca: parseCurrencyToNumber(data.porcentagem_margem_seguranca),
       porcentagemLucroLiquido: parseFloat(
-        data.lucro_liquido_perc.toString().replace(",", "."),
+        (data.lucro_liquido_perc ?? 20).toString().replace(",", "."),
       ),
-      observacao: data.observacao,
-      situacao: data.situacao,
+      observacao: data.observacao ?? selectedOrcamento.observacao,
+      situacao: data.situacao || selectedOrcamento.situacao || "Aberto",
 
-      garantia_fabrica_modulo: data.garantia_fabrica_modulo,
-      garantia_eficiencia_modulo: data.garantia_eficiencia_modulo,
-      garantia_inversor: data.garantia_inversor,
-      garantia_instalacao: data.garantia_instalacao,
-      garantia_estrutura: data.garantia_estrutura,
-      monitoramento_inversor: data.monitoramento_inversor,
-      material_structure: data.material_structure,
+      garantia_fabrica_modulo: data.garantia_fabrica_modulo ?? selectedOrcamento.garantia_fabrica_modulo,
+      garantia_eficiencia_modulo: data.garantia_eficiencia_modulo ?? selectedOrcamento.garantia_eficiencia_modulo,
+      garantia_inversor: data.garantia_inversor ?? selectedOrcamento.garantia_inversor,
+      garantia_instalacao: data.garantia_instalacao ?? selectedOrcamento.garantia_instalacao,
+      garantia_estrutura: data.garantia_estrutura ?? selectedOrcamento.garantia_estrutura,
+      monitoramento_inversor: data.monitoramento_inversor ?? selectedOrcamento.monitoramento_inversor,
+      material_structure: data.material_structure ?? selectedOrcamento.material_structure,
 
-      caracteristica_estrutura_1: data.caracteristica_estrutura_1,
-      caracteristica_estrutura_2: data.caracteristica_estrutura_2,
-      caracteristica_estrutura_3: data.caracteristica_estrutura_3,
-      caracteristica_estrutura_4: data.caracteristica_estrutura_4,
-      caracteristica_estrutura_5: data.caracteristica_estrutura_5,
+      caracteristica_estrutura_1: data.caracteristica_estrutura_1 ?? selectedOrcamento.caracteristica_estrutura_1,
+      caracteristica_estrutura_2: data.caracteristica_estrutura_2 ?? selectedOrcamento.caracteristica_estrutura_2,
+      caracteristica_estrutura_3: data.caracteristica_estrutura_3 ?? selectedOrcamento.caracteristica_estrutura_3,
+      caracteristica_estrutura_4: data.caracteristica_estrutura_4 ?? selectedOrcamento.caracteristica_estrutura_4,
+      caracteristica_estrutura_5: data.caracteristica_estrutura_5 ?? selectedOrcamento.caracteristica_estrutura_5,
     };
 
     try {
@@ -1073,8 +1060,13 @@ export default function BudgetManagement() {
         setSelectedOrcamento(null);
         fetchBudgets();
       }
-    } catch {
-      addToast("error", "Erro", "Não foi possível salvar as alterações.");
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.details?.message ||
+        err?.message ||
+        "Não foi possível salvar as alterações.";
+      addToast("error", "Erro", errorMsg);
     } finally {
       setIsSaving(false);
     }
@@ -1097,7 +1089,7 @@ export default function BudgetManagement() {
       <PageBreadcrumb pageTitle="Gerenciar Orçamento" />
 
       <div className="space-y-6">
-        <ComponentCard title="Histórico Global de Solicitações">
+        <ComponentCard title={isAdmin ? "Histórico Global de Solicitações" : "Minhas Solicitações de Orçamento"}>
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
               <thead>
@@ -1151,6 +1143,7 @@ export default function BudgetManagement() {
                   </tr>
                 ) : (
                   budgets.map((o) => {
+                    const collab = getCollaboratorInfo(o, user, users);
                     return (
                       <tr
                         key={o.id}
@@ -1165,8 +1158,8 @@ export default function BudgetManagement() {
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
                           <div className="flex items-center gap-2.5">
-                            <UserAvatar user={o.expand?.user_id} size="sm" />
-                            <span>{o.expand?.user_id?.name || "---"}</span>
+                            <UserAvatar user={collab} size="sm" />
+                            <span>{collab.name}</span>
                           </div>
                         </td>
                         <td className="px-5 py-4 text-theme-sm text-gray-500 dark:text-gray-400">
@@ -1549,6 +1542,7 @@ export default function BudgetManagement() {
                 )}
               </ComponentCard>
 
+              {/* SEÇÃO VALORES DE ENTRADA (CUSTOS) */}
               <ComponentCard
                 title={
                   <button
@@ -1582,6 +1576,14 @@ export default function BudgetManagement() {
               >
                 {isSection2Open && (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 animate-slideDown">
+                    {isOrcamentoDeAssociado && (
+                      <div className="sm:col-span-2 md:col-span-3 flex items-start gap-2 rounded-lg border border-warning-200/50 bg-warning-50 px-4 py-3 text-sm text-warning-700 dark:border-warning-500/20 dark:bg-warning-500/10 dark:text-warning-400">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning-500"></span>
+                        <span>
+                          Mão de obra, equipamento local, deslocamento, seguro, imposto e lucro líquido foram preenchidos pelo associado. Você pode sobrescrevê-los se necessário, mas o associado também pode editá-los depois.
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <Label required>Valor do Kit (R$)</Label>
                       <Controller
@@ -1715,6 +1717,24 @@ export default function BudgetManagement() {
                             }
                             placeholder="8,00"
                             error={!!errors.porcentagem_imposto}
+                          />
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label required>Margem de Segurança (%)</Label>
+                      <Controller
+                        name="porcentagem_margem_seguranca"
+                        control={control}
+                        rules={{ required: "Obrigatório" }}
+                        render={({ field }) => (
+                          <Input
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(formatPercent(e.target.value))
+                            }
+                            placeholder="3,00"
+                            error={!!errors.porcentagem_margem_seguranca}
                           />
                         )}
                       />
@@ -2001,42 +2021,46 @@ export default function BudgetManagement() {
               >
                 {isSection3Open && (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-4 animate-slideDown">
-                    <div>
-                      <Label>Valor do Kit Final (R$)</Label>
-                      <Controller
-                        name="valor_kit_final"
-                        control={control}
-                        render={({ field }) =>
-                          isCalculandoLicenciamento ? (
-                            <Skeleton className="h-11 w-full" />
-                          ) : (
-                            <Input
-                              {...field}
-                              readOnly
-                              className="bg-gray-50 dark:bg-white/5"
-                            />
-                          )
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Lucro do Equipamento (R$)</Label>
-                      <Controller
-                        name="lucro_equipamento"
-                        control={control}
-                        render={({ field }) =>
-                          isCalculandoLicenciamento ? (
-                            <Skeleton className="h-11 w-full" />
-                          ) : (
-                            <Input
-                              {...field}
-                              readOnly
-                              className="bg-gray-50 dark:bg-white/5"
-                            />
-                          )
-                        }
-                      />
-                    </div>
+                    {isAdmin && (
+                      <>
+                        <div>
+                          <Label>Valor do Kit Final (R$)</Label>
+                          <Controller
+                            name="valor_kit_final"
+                            control={control}
+                            render={({ field }) =>
+                              isCalculandoLicenciamento ? (
+                                <Skeleton className="h-11 w-full" />
+                              ) : (
+                                <Input
+                                  {...field}
+                                  readOnly
+                                  className="bg-gray-50 dark:bg-white/5"
+                                />
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Lucro do Equipamento (R$)</Label>
+                          <Controller
+                            name="lucro_equipamento"
+                            control={control}
+                            render={({ field }) =>
+                              isCalculandoLicenciamento ? (
+                                <Skeleton className="h-11 w-full" />
+                              ) : (
+                                <Input
+                                  {...field}
+                                  readOnly
+                                  className="bg-gray-50 dark:bg-white/5"
+                                />
+                              )
+                            }
+                          />
+                        </div>
+                      </>
+                    )}
                     <div>
                       <Label>Valor Mão de Obra (R$)</Label>
                       <Controller
@@ -2148,44 +2172,50 @@ export default function BudgetManagement() {
                         }
                       />
                     </div>
-                    <div>
-                      <Label>Margem de Segurança (R$)</Label>
-                      <Controller
-                        name="margem_seguranca"
-                        control={control}
-                        render={({ field }) =>
-                          isSection5Loading ? (
-                            <Skeleton className="h-11 w-full" />
-                          ) : (
-                            <Input
-                              {...field}
-                              readOnly
-                              className="bg-gray-50 dark:bg-white/5"
-                            />
-                          )
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label>Custo Total do Projeto (R$)</Label>
-                      <Controller
-                        name="valor_investido"
-                        control={control}
-                        render={({ field }) =>
-                          isSection5Loading ? (
-                            <Skeleton className="h-11 w-full" />
-                          ) : (
-                            <Input
-                              {...field}
-                              readOnly
-                              className="bg-gray-50 dark:bg-white/5 font-bold"
-                            />
-                          )
-                        }
-                      />
-                    </div>
+                    {isAdmin && (
+                      <>
+                        <div>
+                          <Label>Margem de Segurança (R$)</Label>
+                          <Controller
+                            name="margem_seguranca"
+                            control={control}
+                            render={({ field }) =>
+                              isSection5Loading ? (
+                                <Skeleton className="h-11 w-full" />
+                              ) : (
+                                <Input
+                                  {...field}
+                                  readOnly
+                                  className="bg-gray-50 dark:bg-white/5"
+                                />
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Custo Total do Projeto (R$)</Label>
+                          <Controller
+                            name="valor_investido"
+                            control={control}
+                            render={({ field }) =>
+                              isSection5Loading ? (
+                                <Skeleton className="h-11 w-full" />
+                              ) : (
+                                <Input
+                                  {...field}
+                                  readOnly
+                                  className="bg-gray-50 dark:bg-white/5 font-bold"
+                                />
+                              )
+                            }
+                          />
+                        </div>
+                      </>
+                    )}
                     <div className="lg:col-span-1">
-                      <Label>Lucro Líquido Previsto (R$)</Label>
+                      <Label>
+                        {isOrcamentoDeAssociado ? "Lucro do Associado (R$)" : "Lucro Líquido Previsto (R$)"}
+                      </Label>
                       <Controller
                         name="lucro_liquido_previsto"
                         control={control}
@@ -2215,7 +2245,9 @@ export default function BudgetManagement() {
                           ) : (
                             <Input
                               {...field}
+                              readOnly={!isAdmin}
                               onChange={(e) => {
+                                if (!isAdmin) return;
                                 lastChangedField.current = "price";
                                 const formatted = formatCurrency(
                                   e.target.value,
@@ -2602,6 +2634,7 @@ export default function BudgetManagement() {
                   )}
                 />
               </div>
+
               <div className="flex justify-end gap-4">
                 <Button
                   variant="outline"
